@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Usuario {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  nombre        String?
+  password      String
+  fotoPerfil    String?  @db.VarChar(500)
+  fechaCreacion DateTime @default(now())
+
+  prendas   Prenda[]
+  outfits   Outfit[]
+  productos Producto[]
+}
+
+model Prenda {
+  id          String  @id @default(uuid())
+  nombre      String?
+  urlImagen   String  @db.VarChar(500)
+  categoria   String
+  color       String?
+  talle       String?
+  etiquetas   String? @db.Text // JSON stringificado: ["casual","verano"]
+  descripcion String? @db.Text
+  usuarioId   String
+  usuario     Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  outfitPrendas OutfitPrenda[]
+
+  @@index([usuarioId])
+}
+
+model Outfit {
+  id          String  @id @default(uuid())
+  nombre      String
+  categoria   String?
+  descripcion String? @db.Text
+  usuarioId   String
+  usuario     Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  outfitPrendas OutfitPrenda[]
+
+  @@index([usuarioId])
+}
+
+model OutfitPrenda {
+  id       String @id @default(uuid())
+  outfitId String
+  outfit   Outfit @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  prendaId String
+  prenda   Prenda @relation(fields: [prendaId], references: [id], onDelete: Cascade)
+
+  @@unique([outfitId, prendaId])
+  @@index([outfitId])
+  @@index([prendaId])
+}
+
+model Producto {
+  id          String   @id @default(uuid())
+  titulo      String
+  descripcion String   @db.Text
+  precio      Float
+  estado      String   @default("DISPONIBLE")
+  usuarioId   String
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  fechaInicio DateTime @default(now())
+
+  @@index([usuarioId])
+}
