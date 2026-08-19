@@ -13,11 +13,12 @@
     "db:push": "prisma db push"
   },
   "dependencies": {
+    "@imagekit/nodejs": "^7.11.0",
     "@prisma/client": "6.19.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "googleapis": "^173.0.0",
-    "imagekit": "^1.5.0",
+    "imagekit": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.511.0",
     "next": "16.3.1",

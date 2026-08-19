@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
@@ -9,43 +8,43 @@ datasource db {
 }
 
 model Usuario {
-  id            String   @id @default(uuid())
-  email         String   @unique
+  id            String     @id @default(uuid())
+  email         String     @unique
   nombre        String?
   password      String
-  fotoPerfil    String?  @db.VarChar(500)
-  fechaCreacion DateTime @default(now())
-
-  prendas   Prenda[]
-  outfits   Outfit[]
-  productos Producto[]
+  fechaCreacion DateTime   @default(now())
+  fotoPerfil    String?    @db.VarChar(500)
+  outfits       Outfit[]
+  prendas       Prenda[]
+  productos     Producto[]
+  favoritos     FavoritoProducto[]
+  compras       Compra[]
+  resenas       ResenaProducto[]
 }
 
 model Prenda {
-  id          String  @id @default(uuid())
-  nombre      String?
-  urlImagen   String  @db.VarChar(500)
-  categoria   String
-  color       String?
-  talle       String?
-  etiquetas   String? @db.Text // JSON stringificado: ["casual","verano"]
-  descripcion String? @db.Text
-  usuarioId   String
-  usuario     Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-
+  id            String         @id @default(uuid())
+  urlImagen     String         @db.VarChar(500)
+  categoria     String
+  color         String?
+  usuarioId     String
+  nombre        String?
+  descripcion   String?        @db.Text
+  etiquetas     String?        @db.Text
+  talle         String?
   outfitPrendas OutfitPrenda[]
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId])
 }
 
 model Outfit {
-  id          String  @id @default(uuid())
-  nombre      String
-  categoria   String?
-  descripcion String? @db.Text
-  usuarioId   String
-  usuario     Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-
+  id            String         @id @default(uuid())
+  nombre        String
+  usuarioId     String
+  categoria     String?
+  descripcion   String?        @db.Text
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   outfitPrendas OutfitPrenda[]
 
   @@index([usuarioId])
@@ -54,8 +53,8 @@ model Outfit {
 model OutfitPrenda {
   id       String @id @default(uuid())
   outfitId String
-  outfit   Outfit @relation(fields: [outfitId], references: [id], onDelete: Cascade)
   prendaId String
+  outfit   Outfit @relation(fields: [outfitId], references: [id], onDelete: Cascade)
   prenda   Prenda @relation(fields: [prendaId], references: [id], onDelete: Cascade)
 
   @@unique([outfitId, prendaId])
@@ -64,14 +63,59 @@ model OutfitPrenda {
 }
 
 model Producto {
-  id          String   @id @default(uuid())
+  id          String             @id @default(uuid())
   titulo      String
-  descripcion String   @db.Text
+  descripcion String             @db.Text
   precio      Float
-  estado      String   @default("DISPONIBLE")
+  estado      String             @default("DISPONIBLE")
+  imagen      String?            @db.VarChar(500)
+  etiquetas   String?            @db.Text
+  contacto    String?            @db.VarChar(500)
   usuarioId   String
-  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  fechaInicio DateTime @default(now())
+  fechaInicio DateTime           @default(now())
+  usuario     Usuario            @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  favoritos   FavoritoProducto[]
+  compras     Compra[]
+  resenas     ResenaProducto[]
 
   @@index([usuarioId])
+}
+
+model FavoritoProducto {
+  id         String   @id @default(uuid())
+  usuarioId  String
+  productoId String
+  creadoEn   DateTime @default(now())
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, productoId])
+  @@index([productoId])
+}
+
+model Compra {
+  id         String   @id @default(uuid())
+  compradorId String
+  productoId String
+  estado     String   @default("PENDIENTE")
+  creadoEn   DateTime @default(now())
+  comprador  Usuario  @relation(fields: [compradorId], references: [id], onDelete: Cascade)
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@unique([compradorId, productoId])
+  @@index([productoId])
+}
+
+model ResenaProducto {
+  id         String   @id @default(uuid())
+  puntuacion Int
+  comentario String?  @db.Text
+  usuarioId  String
+  productoId String
+  creadoEn   DateTime @default(now())
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, productoId])
+  @@index([productoId])
 }
