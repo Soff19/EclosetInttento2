@@ -73,6 +73,8 @@ export async function getUserById(id: string) {
       id: true,
       email: true,
       nombre: true,
+      perfilCompletado: true,
+      preferencias: true,
       fotoPerfil: true,
       fechaCreacion: true,
       _count: { select: { prendas: true, outfits: true, productos: true } },

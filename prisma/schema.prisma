@@ -12,6 +12,8 @@ model Usuario {
   email         String     @unique
   nombre        String?
   password      String
+  perfilCompletado Boolean  @default(false)
+  preferencias   Json?
   fechaCreacion DateTime   @default(now())
   fotoPerfil    String?    @db.VarChar(500)
   outfits       Outfit[]

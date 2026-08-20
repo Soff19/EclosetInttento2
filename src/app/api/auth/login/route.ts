@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateToken, loginUser } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -9,7 +10,11 @@ export async function POST(request: Request) {
     }
     const user = await loginUser(email, password);
     const token = generateToken(user);
-    const res = NextResponse.json({ success: true, user, token, redirectTo: "/home" });
+    // Si el usuario no completó el perfil, redirigimos al onboarding
+    const userFromDb = await prisma.usuario.findUnique({ where: { id: user.id } });
+    const shouldOnboard = userFromDb ? !userFromDb.perfilCompletado : false;
+    const redirectTo = shouldOnboard ? "/onboarding" : "/home";
+    const res = NextResponse.json({ success: true, user, token, redirectTo });
     res.cookies.set("token", token, {
       httpOnly: true,
       sameSite: "lax",
