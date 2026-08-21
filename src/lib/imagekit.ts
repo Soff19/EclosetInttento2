@@ -8,3 +8,9 @@ export function getImageKit() {
   });
 };
 
+export function getBackgroundRemovedUrl(url: string) {
+  const imageUrl = new URL(url);
+  imageUrl.searchParams.set("tr", "e-bgremove");
+  return imageUrl.toString();
+}
+

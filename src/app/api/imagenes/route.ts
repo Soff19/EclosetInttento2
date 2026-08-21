@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getImageKit } from "@/lib/imagekit";
+import { getBackgroundRemovedUrl, getImageKit } from "@/lib/imagekit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,10 @@ export async function POST(request: NextRequest) {
       folder,
       useUniqueFileName: true,
     });
-    return NextResponse.json({ url: response.url, fileId: response.fileId });
+    const url = folder === "/ecloset/prendas"
+      ? getBackgroundRemovedUrl(response.url)
+      : response.url;
+    return NextResponse.json({ url, fileId: response.fileId });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Error al subir la imagen" }, { status: 500 });
