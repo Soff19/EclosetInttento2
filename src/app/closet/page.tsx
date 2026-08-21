@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ClosetSearch from "@/components/closet/ClosetSearch";
 import ClosetFilters from "@/components/closet/ClosetFilters";
@@ -46,11 +46,21 @@ export default function ClosetPage() {
 
   return (
     <main className="min-h-screen relative overflow-hidden px-5 pt-6 pb-32" style={{ backgroundColor: "#F9F5F0" }}>
-      <div className="absolute top-[-80px] left-[-60px] w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#A8C5A0" }} />
-      <div className="absolute bottom-0 right-[-80px] w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#C9A96E" }} />
+      <div className="absolute -top-20 -left-15 w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#A8C5A0" }} />
+      <div className="absolute bottom-0 -right-20 w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#C9A96E" }} />
 
       <section className="relative z-10">
-        <BackLink href="/home" label="Volver al home" />
+        <div className="flex items-start justify-between mb-4">
+          <BackLink href="/home" label="Volver al home" />
+          <button
+            onClick={() => router.push("/calendario")}
+            className="p-2 rounded-lg hover:opacity-70 transition"
+            style={{ backgroundColor: "#F0EBE4" }}
+            title="Ir al calendario"
+          >
+            <Calendar size={20} style={{ color: "#2C3E2D" }} />
+          </button>
+        </div>
         <p className="uppercase text-[10px] tracking-[0.18em]" style={{ color: "#6b6b60" }}>
           Tu espacio personal
         </p>
@@ -62,7 +72,7 @@ export default function ClosetPage() {
 
       <button
         onClick={() => router.push("/prendas/nueva")}
-        className="mt-6 w-full rounded-[12px] py-4 flex items-center justify-center gap-2"
+        className="mt-6 w-full rounded-xl py-4 flex items-center justify-center gap-2"
         style={{ background: "#2C3E2D", color: "#F9F5F0" }}
       >
         <Plus size={18} />
@@ -71,7 +81,7 @@ export default function ClosetPage() {
 
       <button
         onClick={() => router.push("/outfits/crear")}
-        className="mt-3 w-full rounded-[12px] py-4 flex items-center justify-center gap-2"
+        className="mt-3 w-full rounded-xl py-4 flex items-center justify-center gap-2"
         style={{ background: "#fff", color: "#2C3E2D", border: "1px solid #e8e4de" }}
       >
         <Plus size={18} />

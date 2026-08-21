@@ -146,8 +146,8 @@ export default function CrearOutfitPage() {
 
   return (
     <main className="min-h-screen px-5 pt-6 pb-28 relative overflow-hidden" style={{ backgroundColor: "#F9F5F0" }}>
-      <div className="absolute top-[-80px] left-[-60px] w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#A8C5A0" }} />
-      <div className="absolute bottom-0 right-[-80px] w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#C9A96E" }} />
+      <div className="absolute -top-20 -left-15 w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#A8C5A0" }} />
+      <div className="absolute bottom-0 -right-20 w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#C9A96E" }} />
 
       <div className="relative z-10 max-w-xl mx-auto">
         <BackLink href="/outfits" label="Volver a Mis Outfits" />
@@ -192,7 +192,7 @@ export default function CrearOutfitPage() {
 
         {!loadingPrendas && prendas.length === 0 && (
           <div
-            className="rounded-[24px] p-6 mb-6 text-center"
+            className="rounded-3xl p-6 mb-6 text-center"
             style={{ background: "rgba(255,255,255,0.85)", border: "1px dashed #A8C5A0" }}
           >
             <p className="text-sm mb-3" style={{ color: "#6b6b60" }}>
@@ -200,7 +200,7 @@ export default function CrearOutfitPage() {
             </p>
             <button
               onClick={() => router.push("/prendas/nueva")}
-              className="px-4 py-3 rounded-[12px] text-sm"
+              className="px-4 py-3 rounded-xl text-sm"
               style={{ background: "#2C3E2D", color: "#F9F5F0" }}
             >
               Ir a nueva prenda
@@ -281,7 +281,7 @@ export default function CrearOutfitPage() {
                                   setSelected((previous) => [...new Set([...previous.filter((selectedId) => !rowIds.has(selectedId)), prenda.id])]);
                                 }
                               }}
-                              className="shrink-0 w-44 overflow-hidden rounded-[24px] text-left transition-all"
+                              className="shrink-0 w-44 overflow-hidden rounded-3xl text-left transition-all"
                               style={{
                                 scrollSnapAlign: "center",
                                 opacity: isSelected ? 1 : 0.48,

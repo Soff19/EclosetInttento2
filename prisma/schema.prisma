@@ -22,6 +22,7 @@ model Usuario {
   favoritos     FavoritoProducto[]
   compras       Compra[]
   resenas       ResenaProducto[]
+  eventosCalendario EventoCalendario[]
 }
 
 model Prenda {
@@ -48,6 +49,7 @@ model Outfit {
   descripcion   String?        @db.Text
   usuario       Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   outfitPrendas OutfitPrenda[]
+  eventosCalendario EventoCalendario[]
 
   @@index([usuarioId])
 }
@@ -120,4 +122,21 @@ model ResenaProducto {
 
   @@unique([usuarioId, productoId])
   @@index([productoId])
+}
+
+model EventoCalendario {
+  id        String   @id @default(uuid())
+  usuarioId String
+  fecha     DateTime
+  tipo      String   // "evento" | "outfit" | "foto"
+  titulo    String?
+  outfitId  String?
+  urlImagen String?  @db.VarChar(500)
+  creadoEn  DateTime @default(now())
+  
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  outfit    Outfit?  @relation(fields: [outfitId], references: [id], onDelete: SetNull)
+  
+  @@index([usuarioId])
+  @@index([fecha])
 }
