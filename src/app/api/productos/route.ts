@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       include: {
         usuario: { select: { id: true, nombre: true, fotoPerfil: true, email: true } },
         favoritos: { select: { usuarioId: true } },
-        resenas: { select: { puntuacion: true } },
+        resenas: { include: { usuario: { select: { nombre: true, email: true } } }, orderBy: { creadoEn: "desc" } },
       },
     });
     const token = extractToken(request);
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
         favorito: user ? favoritos.some((item) => item.usuarioId === user.id) : false,
         promedio: resenas.length ? resenas.reduce((sum, item) => sum + item.puntuacion, 0) / resenas.length : null,
         cantidadResenas: resenas.length,
+        resenas,
       })),
     });
   } catch {
