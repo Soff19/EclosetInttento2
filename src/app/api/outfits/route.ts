@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const { nombre, categoria, descripcion, prendas_ids } = await request.json();
-    if (!nombre) {
+    const nombreNormalizado = typeof nombre === "string" ? nombre.trim() : "";
+    if (!nombreNormalizado) {
       return NextResponse.json({ error: "El nombre del outfit es obligatorio" }, { status: 400 });
     }
 
@@ -45,8 +46,8 @@ export async function POST(request: NextRequest) {
 
     const outfit = await prisma.outfit.create({
       data: {
-        nombre,
-        categoria: categoria || null,
+        nombre: nombreNormalizado,
+        categoria: typeof categoria === "string" && categoria.trim() ? categoria.trim() : null,
         descripcion: descripcion || null,
         usuarioId: user.id,
         outfitPrendas: ids.length

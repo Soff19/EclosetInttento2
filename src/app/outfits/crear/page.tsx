@@ -7,10 +7,14 @@ import BackLink from "@/components/BackLink";
 import GarmentCard from "@/components/closet/GarmentCard";
 import type { Prenda } from "@/types/prenda";
 
+const tiposOutfit = ["Casual", "Elegante", "Formal", "Deportivo", "Fiesta", "Trabajo"];
+
 export default function CrearOutfitPage() {
   const router = useRouter();
   const [prendas, setPrendas] = useState<Prenda[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
+  const [nombre, setNombre] = useState("");
+  const [categoria, setCategoria] = useState("Casual");
   const [view, setView] = useState<"grid" | "styling">("grid");
   const [pinnedRows, setPinnedRows] = useState<string[]>([]);
   const [stylingSelections, setStylingSelections] = useState<Record<string, string | null>>({});
@@ -109,6 +113,10 @@ export default function CrearOutfitPage() {
 
   async function guardarOutfit() {
     setError("");
+    if (!nombre.trim()) {
+      setError("Poné un nombre para tu outfit");
+      return;
+    }
     if (selected.length === 0) {
       setError("Seleccioná al menos una prenda de tu closet");
       return;
@@ -125,8 +133,8 @@ export default function CrearOutfitPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          nombre: "Nuevo outfit",
-          categoria: "Casual",
+          nombre: nombre.trim(),
+          categoria,
           descripcion: "",
           prendas_ids: selected,
         }),
@@ -158,6 +166,37 @@ export default function CrearOutfitPage() {
           </p>
           <h1 className="text-[2rem] font-light mt-1">Styling ✨</h1>
         </div>
+
+        <section className="rounded-3xl p-5 mb-7" style={{ background: "rgba(255,255,255,0.78)", boxShadow: "0 8px 28px rgba(44,62,45,0.06)" }}>
+          <div className="grid gap-4 sm:grid-cols-[1.35fr_1fr]">
+            <label className="block">
+              <span className="uppercase text-[10px] tracking-[0.18em]" style={{ color: "#6b6b60" }}>
+                Nombre del outfit
+              </span>
+              <input
+                value={nombre}
+                onChange={(event) => setNombre(event.target.value)}
+                placeholder="Ej. Look de viernes"
+                maxLength={60}
+                className="mt-2 w-full rounded-xl px-3 py-3 text-sm outline-none"
+                style={{ background: "#F9F5F0", color: "#2C3E2D", border: "1px solid rgba(168,197,160,0.65)" }}
+              />
+            </label>
+            <label className="block">
+              <span className="uppercase text-[10px] tracking-[0.18em]" style={{ color: "#6b6b60" }}>
+                Tipo de outfit
+              </span>
+              <select
+                value={categoria}
+                onChange={(event) => setCategoria(event.target.value)}
+                className="mt-2 w-full rounded-xl px-3 py-3 text-sm outline-none"
+                style={{ background: "#F9F5F0", color: "#2C3E2D", border: "1px solid rgba(168,197,160,0.65)" }}
+              >
+                {tiposOutfit.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
+              </select>
+            </label>
+          </div>
+        </section>
 
         <div className="mb-3 flex items-center justify-between">
           <div>

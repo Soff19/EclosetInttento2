@@ -6,7 +6,12 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("image") as File | null;
     if (!file) return NextResponse.json({ error: "No se recibió ninguna imagen" }, { status: 400 });
-    const folder = formData.get("folder") === "productos" ? "/ecloset/productos" : "/ecloset/prendas";
+    const folderName = formData.get("folder");
+    const folder = folderName === "productos"
+      ? "/ecloset/productos"
+      : folderName === "perfiles"
+        ? "/ecloset/perfiles"
+        : "/ecloset/prendas";
     const response = await getImageKit().upload({
       file: Buffer.from(await file.arrayBuffer()),
       fileName: file.name,
