@@ -7,6 +7,11 @@ import { useRouter } from "next/navigation";
 export default function Home() {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryForm, setRecoveryForm] = useState({ email: "", password: "", confirmPassword: "" });
+  const [recoveryMessage, setRecoveryMessage] = useState("");
+  const [recoveryError, setRecoveryError] = useState("");
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -40,6 +45,31 @@ export default function Home() {
     setLoading(false);
   }
 };
+
+  const handlePasswordRecovery = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setRecoveryError("");
+    setRecoveryMessage("");
+    setRecoveryLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(recoveryForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo actualizar la contraseña");
+
+      setRecoveryMessage(data.message);
+      setForm({ email: recoveryForm.email, password: "" });
+      setRecoveryForm({ email: recoveryForm.email, password: "", confirmPassword: "" });
+    } catch (err) {
+      setRecoveryError(err instanceof Error ? err.message : "Ocurrió un error inesperado");
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex font-sans" style={{ background: "#F9F5F0" }}>
@@ -148,9 +178,19 @@ export default function Home() {
                 <label className="text-xs font-medium tracking-wider uppercase" style={{ color: "#6b6b60" }}>
                   Password
                 </label>
-                <a href="#" className="text-xs transition-colors" style={{ color: "#C9A96E" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoveryOpen(true);
+                    setRecoveryError("");
+                    setRecoveryMessage("");
+                    setRecoveryForm((current) => ({ ...current, email: form.email }));
+                  }}
+                  className="text-xs transition-colors"
+                  style={{ color: "#C9A96E" }}
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <input
@@ -236,6 +276,64 @@ export default function Home() {
               Continue with Google
             </button>
           </form>
+
+          {recoveryOpen && (
+            <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/30 px-6">
+              <div className="w-full max-w-md rounded-2xl bg-white p-7 shadow-xl">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em]" style={{ color: "#C9A96E" }}>Account access</p>
+                    <h3 className="mt-2 text-2xl font-light" style={{ color: "#1a1a1a" }}>Reset your password</h3>
+                    <p className="mt-2 text-sm" style={{ color: "#77776d" }}>Enter your account email and choose a new password.</p>
+                  </div>
+                  <button type="button" onClick={() => setRecoveryOpen(false)} aria-label="Close" className="text-2xl leading-none" style={{ color: "#9a9a8e" }}>×</button>
+                </div>
+
+                {(recoveryError || recoveryMessage) && (
+                  <div className="mt-5 rounded-xl px-4 py-3 text-sm" style={{ background: recoveryError ? "#fff0f0" : "#eff7ed", border: `1px solid ${recoveryError ? "#ffcccc" : "#c8dfc2"}`, color: recoveryError ? "#cc4444" : "#3d7040" }}>
+                    {recoveryError || recoveryMessage}
+                  </div>
+                )}
+
+                <form onSubmit={handlePasswordRecovery} className="mt-6 space-y-4">
+                  <input
+                    type="email"
+                    placeholder="Email de tu cuenta"
+                    value={recoveryForm.email}
+                    onChange={(e) => setRecoveryForm({ ...recoveryForm, email: e.target.value })}
+                    required
+                    className="w-full rounded-xl border border-[#e8e4de] px-4 py-3.5 text-sm outline-none"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Nueva contraseña (mínimo 6 caracteres)"
+                    value={recoveryForm.password}
+                    onChange={(e) => setRecoveryForm({ ...recoveryForm, password: e.target.value })}
+                    minLength={6}
+                    required
+                    className="w-full rounded-xl border border-[#e8e4de] px-4 py-3.5 text-sm outline-none"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Repetí la nueva contraseña"
+                    value={recoveryForm.confirmPassword}
+                    onChange={(e) => setRecoveryForm({ ...recoveryForm, confirmPassword: e.target.value })}
+                    minLength={6}
+                    required
+                    className="w-full rounded-xl border border-[#e8e4de] px-4 py-3.5 text-sm outline-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={recoveryLoading}
+                    className="w-full rounded-xl py-4 text-sm font-medium uppercase tracking-widest"
+                    style={{ background: recoveryLoading ? "#5a7a5b" : "#2C3E2D", color: "#F9F5F0" }}
+                  >
+                    {recoveryLoading ? "Actualizando..." : "Guardar nueva contraseña"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <p className="text-center text-xs mt-8" style={{ color: "#b0b0a5" }}>
