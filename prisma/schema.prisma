@@ -20,6 +20,12 @@ model Usuario {
   favoritos     FavoritoProducto[]
   compras       Compra[]
   resenas       ResenaProducto[]
+<<<<<<< Updated upstream
+=======
+  notificacionesRecibidas Notificacion[] @relation("NotificacionDestinatario")
+  notificacionesEnviadas Notificacion[] @relation("NotificacionActor")
+  eventosCalendario EventoCalendario[]
+>>>>>>> Stashed changes
 }
 
 model Prenda {
@@ -104,6 +110,24 @@ model Compra {
 
   @@unique([compradorId, productoId])
   @@index([productoId])
+}
+
+model Notificacion {
+  id             String    @id @default(uuid())
+  destinatarioId String
+  actorId        String?
+  productoId     String?
+  tipo           String
+  mensaje        String    @db.VarChar(255)
+  leidaEn        DateTime?
+  creadoEn       DateTime  @default(now())
+  destinatario   Usuario   @relation("NotificacionDestinatario", fields: [destinatarioId], references: [id], onDelete: Cascade)
+  actor          Usuario?  @relation("NotificacionActor", fields: [actorId], references: [id], onDelete: SetNull)
+  producto       Producto? @relation(fields: [productoId], references: [id], onDelete: SetNull)
+
+  @@index([destinatarioId, creadoEn])
+  @@index([productoId])
+  @@unique([destinatarioId, actorId, productoId, tipo])
 }
 
 model ResenaProducto {

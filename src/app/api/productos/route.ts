@@ -18,9 +18,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q")?.trim();
     const etiqueta = searchParams.get("etiqueta")?.trim().toLowerCase();
+    const productId = searchParams.get("id")?.trim();
     const productos = await prisma.producto.findMany({
       where: {
-        estado: searchParams.get("estado") || "DISPONIBLE",
+        ...(productId
+          ? { id: productId }
+          : { estado: searchParams.get("estado") || "DISPONIBLE" }),
         ...(query ? { OR: [{ titulo: { contains: query } }, { descripcion: { contains: query } }, { etiquetas: { contains: query } }] } : {}),
         ...(etiqueta ? { etiquetas: { contains: etiqueta } } : {}),
       },
