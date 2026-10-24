@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Sun } from "lucide-react";
+import { Bell, Search, Sun } from "lucide-react";
 import BottomNavigation from "@/components/closet/BottomNavigation";
 
 type User = { nombre: string | null; email: string };
@@ -11,6 +11,7 @@ type User = { nombre: string | null; email: string };
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [noLeidas, setNoLeidas] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -23,6 +24,28 @@ export default function HomePage() {
       setUser(data.user);
     })();
   }, [router]);
+
+  useEffect(() => {
+    async function loadUnread() {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/notificaciones?limit=1", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          credentials: "include",
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setNoLeidas(data.noLeidas || 0);
+        }
+      } catch {
+        setNoLeidas(0);
+      }
+    }
+
+    void loadUnread();
+    window.addEventListener("notificaciones:actualizadas", loadUnread);
+    return () => window.removeEventListener("notificaciones:actualizadas", loadUnread);
+  }, []);
 
   return (
     <main className="min-h-screen relative overflow-hidden px-5 pb-28 pt-6" style={{ backgroundColor: "#F9F5F0" }}>
@@ -38,13 +61,31 @@ export default function HomePage() {
             Hola, {user?.nombre || "usuaria"} ✨
           </h1>
         </div>
-        <Link
-          href="/closet"
-          className="w-11 h-11 rounded-full flex items-center justify-center border"
-          style={{ borderColor: "#e8e4de", background: "rgba(255,255,255,0.85)" }}
-        >
-          <Search size={18} />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/closet"
+            aria-label="Buscar en mi closet"
+            title="Buscar en mi closet"
+            className="w-11 h-11 rounded-full flex items-center justify-center border"
+            style={{ borderColor: "#e8e4de", background: "rgba(255,255,255,0.85)" }}
+          >
+            <Search size={18} />
+          </Link>
+          <Link
+            href="/notificaciones"
+            aria-label={noLeidas ? `Notificaciones, ${noLeidas} sin leer` : "Notificaciones"}
+            title="Notificaciones"
+            className="relative w-11 h-11 rounded-full flex items-center justify-center border"
+            style={{ borderColor: "#e8e4de", background: "#2C3E2D", color: "#F9F5F0", boxShadow: "0 5px 16px rgba(44,62,45,0.18)" }}
+          >
+            <Bell size={18} />
+            {noLeidas > 0 && (
+              <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full flex items-center justify-center text-[10px] font-medium" style={{ background: "#b85555", color: "#fff", border: "2px solid #F9F5F0" }}>
+                {noLeidas > 99 ? "99+" : noLeidas}
+              </span>
+            )}
+          </Link>
+        </div>
       </section>
 
       <section
