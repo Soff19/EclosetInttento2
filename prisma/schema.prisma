@@ -149,14 +149,15 @@ model EventoCalendario {
   id        String   @id @default(uuid())
   usuarioId String
   fecha     DateTime
-  tipo      String
+  tipo      String   // "evento" | "outfit" | "foto"
   titulo    String?
   outfitId  String?
   urlImagen String?  @db.VarChar(500)
   creadoEn  DateTime @default(now())
+  
   usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   outfit    Outfit?  @relation(fields: [outfitId], references: [id], onDelete: SetNull)
-
+  
   @@index([usuarioId])
   @@index([fecha])
 }

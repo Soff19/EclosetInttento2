@@ -66,6 +66,31 @@ export async function loginUser(email: string, password: string) {
   return rest;
 }
 
+export async function resetUserPassword(
+  email: string,
+  password: string,
+  confirmPassword: string
+) {
+  if (password.length < 6) {
+    throw new Error("La contraseña debe tener al menos 6 caracteres");
+  }
+  if (password !== confirmPassword) {
+    throw new Error("Las contraseñas no coinciden");
+  }
+
+  const user = await prisma.usuario.findUnique({ where: { email } });
+  if (!user) throw new Error("No encontramos una cuenta con ese email");
+  if (user.password === "GOOGLE_AUTH") {
+    throw new Error("Esta cuenta usa Google. Continuá con Google.");
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  await prisma.usuario.update({
+    where: { id: user.id },
+    data: { password: hashedPassword },
+  });
+}
+
 export async function getUserById(id: string) {
   return prisma.usuario.findUnique({
     where: { id },
@@ -73,6 +98,8 @@ export async function getUserById(id: string) {
       id: true,
       email: true,
       nombre: true,
+      perfilCompletado: true,
+      preferencias: true,
       fotoPerfil: true,
       fechaCreacion: true,
       _count: { select: { prendas: true, outfits: true, productos: true } },

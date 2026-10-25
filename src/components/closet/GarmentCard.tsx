@@ -40,17 +40,21 @@ export default function GarmentCard({ prenda, selectable, selected, onToggle }: 
           ✓
         </span>
       )}
-      {prenda.urlImagen ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={prenda.urlImagen} alt={title} className="w-full h-52 object-cover" />
-      ) : (
-        <div
-          className="h-52 flex flex-col items-center justify-center"
-          style={{ background: "linear-gradient(135deg,#eaf4eb,#f4ede2)" }}
-        >
+      <div
+        className="aspect-[4/5] w-full flex items-center justify-center overflow-hidden"
+        style={{ background: "linear-gradient(135deg,#eaf4eb,#f4ede2)" }}
+      >
+        {prenda.urlImagen ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={prenda.urlImagen}
+            alt={title}
+            className="block h-full w-full object-contain p-3 sm:p-4"
+          />
+        ) : (
           <span className="text-5xl">👗</span>
-        </div>
-      )}
+        )}
+      </div>
       <div className="p-4">
         <h3 className="font-light text-base" style={{ color: "#1a1a1a" }}>
           {title}
