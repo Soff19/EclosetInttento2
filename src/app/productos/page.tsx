@@ -103,7 +103,6 @@ export default function ProductosPage() {
 
   async function buy(producto: Producto) {
     try {
-<<<<<<< HEAD
       const result = await action(`/api/productos/${producto.id}/comprar`);
       window.dispatchEvent(new Event("notificaciones:actualizadas"));
       setMessage(result.created === false
@@ -111,12 +110,6 @@ export default function ProductosPage() {
         : producto.contacto
           ? "Solicitud registrada. Ya avisamos al vendedor; puedes contactarlo para coordinar."
           : "Solicitud registrada y vendedor notificado. Esta publicación no tiene un contacto externo.");
-=======
-      await action(`/api/productos/${producto.id}/comprar`);
-      setMessage(
-        "Compra registrada. Contactá al vendedor para coordinar la entrega.",
-      );
->>>>>>> develop
       setProductos((items) =>
         items.map((item) =>
           item.id === producto.id ? { ...item, estado: "RESERVADO" } : item,
@@ -177,7 +170,6 @@ export default function ProductosPage() {
       <div className="relative z-10 max-w-2xl mx-auto">
         <div className="flex items-center justify-between">
           <BackLink href="/home" label="Volver al home" />
-<<<<<<< HEAD
           <div className="flex items-center gap-4">
             <Link
               href="/productos/nuevo"
@@ -187,15 +179,6 @@ export default function ProductosPage() {
               <Plus size={15} /> Publicar
             </Link>
           </div>
-=======
-          <Link
-            href="/productos/nuevo"
-            className="flex items-center gap-1 text-xs uppercase tracking-wider"
-            style={{ color: "#2C3E2D" }}
-          >
-            <Plus size={15} /> Publicar
-          </Link>
->>>>>>> develop
         </div>
         <p
           className="uppercase text-[10px] tracking-[0.18em] mt-5"
