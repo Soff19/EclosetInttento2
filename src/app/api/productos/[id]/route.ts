@@ -7,8 +7,9 @@ async function getUser(request: NextRequest) {
   return token ? verifyToken(token) : null;
 }
 
-export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
+  const user = await getUser(request);
   const producto = await prisma.producto.findUnique({
     where: { id },
     include: {
@@ -17,7 +18,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
     },
   });
   if (!producto) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
-  return NextResponse.json({ producto: { ...producto, etiquetas: producto.etiquetas ? JSON.parse(producto.etiquetas) : [] } });
+  return NextResponse.json({ producto: { ...producto, esPropio: user?.id === producto.usuarioId, etiquetas: producto.etiquetas ? JSON.parse(producto.etiquetas) : [] } });
 }
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {

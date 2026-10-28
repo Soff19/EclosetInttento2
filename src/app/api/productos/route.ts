@@ -19,29 +19,37 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get("q")?.trim();
     const etiqueta = searchParams.get("etiqueta")?.trim().toLowerCase();
     const productId = searchParams.get("id")?.trim();
+    const soloMios = searchParams.get("mias") === "true";
+    const token = extractToken(request);
+    const user = token ? verifyToken(token) : null;
+    if (soloMios && !user) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
     const productos = await prisma.producto.findMany({
       where: {
         ...(productId
           ? { id: productId }
-          : { estado: searchParams.get("estado") || "DISPONIBLE" }),
+          : !soloMios
+            ? { estado: searchParams.get("estado") || "DISPONIBLE" }
+            : {}),
+        ...(soloMios && user ? { usuarioId: user.id } : {}),
         ...(query ? { OR: [{ titulo: { contains: query } }, { descripcion: { contains: query } }, { etiquetas: { contains: query } }] } : {}),
         ...(etiqueta ? { etiquetas: { contains: etiqueta } } : {}),
       },
       orderBy: { fechaInicio: "desc" },
-      take: 50,
+      ...(!soloMios ? { take: 50 } : {}),
       include: {
         usuario: { select: { id: true, nombre: true, fotoPerfil: true, email: true } },
         favoritos: { select: { usuarioId: true } },
         resenas: { include: { usuario: { select: { nombre: true, email: true } } }, orderBy: { creadoEn: "desc" } },
       },
     });
-    const token = extractToken(request);
-    const user = token ? verifyToken(token) : null;
     return NextResponse.json({
       productos: productos.map(({ favoritos, resenas, ...producto }) => ({
         ...producto,
         etiquetas: producto.etiquetas ? JSON.parse(producto.etiquetas) : [],
         favorito: user ? favoritos.some((item) => item.usuarioId === user.id) : false,
+        esPropio: user?.id === producto.usuarioId,
         promedio: resenas.length ? resenas.reduce((sum, item) => sum + item.puntuacion, 0) / resenas.length : null,
         cantidadResenas: resenas.length,
         resenas,
