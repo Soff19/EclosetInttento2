@@ -15,7 +15,7 @@ import {
 
 const enlaces = [
   { href: "/admin", label: "Inicio", Icono: Home },
-  { href: "/admin/prendas", label: "Prendas", Icono: Shirt },
+  { href: "/admin/prendas", label: "Marketplace", Icono: Shirt },
   { href: "/admin/usuarios", label: "Usuarios", Icono: UsersRound },
   { href: "/admin/reportes", label: "Reportes", Icono: ClipboardList },
 ] as const;

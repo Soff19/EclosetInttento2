@@ -5,11 +5,11 @@ import Link from "next/link";
 import {
   ArrowDownRight,
   ArrowRight,
-  CheckCircle2,
   ClipboardList,
   Clock3,
   Shirt,
   ShieldCheck,
+  Trash2,
   UsersRound,
   UserRoundPlus,
 } from "lucide-react";
@@ -17,9 +17,9 @@ import { actividadReciente, resumenAdmin } from "./datosResumen";
 
 const iconosResumen = {
   usuarias: UsersRound,
-  pendientes: Shirt,
+  activas: Shirt,
   reportes: ClipboardList,
-  aprobadas: CheckCircle2,
+  eliminadas: Trash2,
 } as const;
 
 const accesos = [
@@ -32,8 +32,8 @@ const accesos = [
   },
   {
     href: "/admin/prendas",
-    titulo: "Moderación de prendas",
-    descripcion: "Revisá las prendas compartidas antes de publicarlas.",
+    titulo: "Marketplace",
+    descripcion: "Revisá publicaciones activas y eliminá las que incumplan las normas.",
     Icono: Shirt,
     fondo: "rgba(201,169,110,0.2)",
   },

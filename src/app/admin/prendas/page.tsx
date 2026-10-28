@@ -1,48 +1,116 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Shirt, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Search, Shirt, Trash2 } from "lucide-react";
+import ModalMotivoPrenda from "@/components/admin/ModalMotivoPrenda";
 import {
-  prendasEjemplo,
-  type EstadoPrenda,
-  type PrendaModeracion,
+  publicacionesEjemplo,
+  type PublicacionMarketplace,
 } from "./datosEjemplo";
 
-type FiltroEstado = "TODAS" | EstadoPrenda;
-
-const estados: { value: FiltroEstado; label: string }[] = [
-  { value: "TODAS", label: "Todos los estados" },
-  { value: "PENDIENTE", label: "Pendientes" },
-  { value: "APROBADA", label: "Aprobadas" },
-  { value: "RECHAZADA", label: "Rechazadas" },
-];
-
-const estilosEstado: Record<EstadoPrenda, { background: string; color: string }> = {
-  PENDIENTE: { background: "rgba(201,169,110,0.2)", color: "#806329" },
-  APROBADA: { background: "rgba(168,197,160,0.3)", color: "#2C3E2D" },
-  RECHAZADA: { background: "rgba(184,85,85,0.12)", color: "#9b4141" },
+type EliminacionPublicacion = {
+  publicacion: PublicacionMarketplace;
+  motivo: string;
+  explicacion: string;
+  fechaEliminacion: string;
 };
 
-function cambiarEstado(
-  prendas: PrendaModeracion[],
-  id: string,
-  estado: EstadoPrenda,
-): PrendaModeracion[] {
-  return prendas.map((prenda) => (prenda.id === id ? { ...prenda, estado } : prenda));
+const categorias = [...new Set(publicacionesEjemplo.map(({ categoria }) => categoria))].sort();
+const vendedoras = [...new Set(publicacionesEjemplo.map(({ vendedora }) => vendedora))].sort();
+
+function obtenerHistorialInicial(): EliminacionPublicacion[] {
+  return publicacionesEjemplo.flatMap((publicacion) =>
+    publicacion.estado === "ELIMINADA" &&
+    publicacion.motivoEliminacion &&
+    publicacion.explicacionEliminacion &&
+    publicacion.fechaEliminacion
+      ? [{
+          publicacion,
+          motivo: publicacion.motivoEliminacion,
+          explicacion: publicacion.explicacionEliminacion,
+          fechaEliminacion: publicacion.fechaEliminacion,
+        }]
+      : [],
+  );
 }
 
-export default function AdminPrendasPage() {
-  const [prendas, setPrendas] = useState(prendasEjemplo);
-  const [filtro, setFiltro] = useState<FiltroEstado>("TODAS");
-  const prendasFiltradas = prendas.filter(
-    (prenda) => filtro === "TODAS" || prenda.estado === filtro,
+export default function AdminMarketplacePage() {
+  const [publicaciones, setPublicaciones] = useState(() =>
+    publicacionesEjemplo.filter((publicacion) => publicacion.estado === "ACTIVA"),
   );
+  const [historial, setHistorial] = useState(obtenerHistorialInicial);
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
+  const [vendedoraSeleccionada, setVendedoraSeleccionada] = useState("");
+  const [publicacionSeleccionada, setPublicacionSeleccionada] =
+    useState<PublicacionMarketplace | null>(null);
+  const [historialAbierto, setHistorialAbierto] = useState(false);
+  const botonQueAbrioRef = useRef<HTMLButtonElement | null>(null);
+  const botonHistorialRef = useRef<HTMLButtonElement | null>(null);
 
-  function eliminarPrenda(prenda: PrendaModeracion) {
-    const confirmado = window.confirm(`¿Querés eliminar la prenda "${prenda.nombre}"?`);
-    if (confirmado) {
-      setPrendas((actuales) => actuales.filter((actual) => actual.id !== prenda.id));
-    }
+  const publicacionesFiltradas = publicaciones.filter((publicacion) => {
+    const coincideNombre = publicacion.titulo
+      .toLocaleLowerCase()
+      .includes(busqueda.trim().toLocaleLowerCase());
+    const coincideCategoria =
+      !categoriaSeleccionada || publicacion.categoria === categoriaSeleccionada;
+    const coincideVendedora =
+      !vendedoraSeleccionada || publicacion.vendedora === vendedoraSeleccionada;
+    return coincideNombre && coincideCategoria && coincideVendedora;
+  });
+
+  useEffect(() => {
+    if (!publicacionSeleccionada) return;
+    const desplazamientoAnterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = desplazamientoAnterior;
+    };
+  }, [publicacionSeleccionada]);
+
+  function abrirModal(
+    publicacion: PublicacionMarketplace,
+    boton: HTMLButtonElement,
+  ) {
+    botonQueAbrioRef.current = boton;
+    setPublicacionSeleccionada(publicacion);
+  }
+
+  function cerrarModal() {
+    setPublicacionSeleccionada(null);
+    window.requestAnimationFrame(() => {
+      if (botonQueAbrioRef.current?.isConnected) {
+        botonQueAbrioRef.current.focus();
+      } else {
+        botonHistorialRef.current?.focus();
+      }
+    });
+  }
+
+  function confirmarEliminacion(motivo: string, explicacion: string) {
+    if (!publicacionSeleccionada) return;
+    const fechaEliminacion = new Date().toISOString();
+    const publicacionEliminada: PublicacionMarketplace = {
+      ...publicacionSeleccionada,
+      estado: "ELIMINADA",
+      motivoEliminacion: motivo,
+      explicacionEliminacion: explicacion,
+      fechaEliminacion,
+    };
+
+    setHistorial((actual) => [
+      {
+        publicacion: publicacionEliminada,
+        motivo,
+        explicacion,
+        fechaEliminacion,
+      },
+      ...actual,
+    ]);
+    setPublicaciones((actuales) =>
+      actuales.filter((publicacion) => publicacion.id !== publicacionSeleccionada.id),
+    );
+    cerrarModal();
   }
 
   return (
@@ -53,42 +121,157 @@ export default function AdminPrendasPage() {
             Panel de administración
           </p>
           <h1 className="mt-1 text-3xl font-light tracking-[-0.02em] sm:text-4xl" style={{ color: "#2C3E2D" }}>
-            Moderación de Prendas
+            Marketplace
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6" style={{ color: "#6b6b60" }}>
-            Revisá las prendas compartidas por la comunidad. Aprobá las que quieras publicar,
-            rechazá las que no correspondan o eliminá las que no deban permanecer.
+            Revisá las publicaciones activas y eliminá las que incumplan las normas de la comunidad.
           </p>
         </header>
 
         <section
-          className="mb-6 flex flex-col gap-3 rounded-[24px] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
+          aria-label="Resumen de publicaciones"
+          className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2"
+        >
+          <article
+            className="rounded-[24px] p-4 sm:p-5"
+            style={{ background: "rgba(255,255,255,0.82)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}
+          >
+            <p className="text-xs" style={{ color: "#6b6b60" }}>Publicaciones activas</p>
+            <p className="mt-1 text-2xl font-light tabular-nums" style={{ color: "#2C3E2D" }} aria-live="polite">
+              {publicaciones.length}
+            </p>
+          </article>
+          <article
+            className="rounded-[24px] p-4 sm:p-5"
+            style={{ background: "rgba(255,255,255,0.82)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}
+          >
+            <p className="text-xs" style={{ color: "#6b6b60" }}>Publicaciones eliminadas</p>
+            <p className="mt-1 text-2xl font-light tabular-nums" style={{ color: "#2C3E2D" }} aria-live="polite">
+              {historial.length}
+            </p>
+          </article>
+        </section>
+
+        <section
+          aria-label="Filtros de publicaciones"
+          className="mb-6 grid grid-cols-1 gap-3 rounded-[24px] p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-4"
           style={{ background: "rgba(255,255,255,0.82)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}
         >
+          <div className="sm:col-span-2 lg:col-span-1">
+            <label htmlFor="buscar-publicacion" className="block text-xs font-medium" style={{ color: "#2C3E2D" }}>
+              Buscar por nombre
+            </label>
+            <div className="mt-2 flex min-h-11 items-center gap-2 rounded-xl border px-3" style={{ borderColor: "#e8e4de", background: "#fff" }}>
+              <Search size={16} aria-hidden="true" style={{ color: "#6b6b60" }} />
+              <input
+                id="buscar-publicacion"
+                type="search"
+                value={busqueda}
+                onChange={(event) => setBusqueda(event.target.value)}
+                placeholder="Nombre de la publicación"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+              />
+            </div>
+          </div>
           <div>
-            <label htmlFor="filtro-estado" className="block text-xs font-medium" style={{ color: "#2C3E2D" }}>
-              Filtrar por estado
+            <label htmlFor="filtro-categoria" className="block text-xs font-medium" style={{ color: "#2C3E2D" }}>
+              Filtrar por categoría
             </label>
             <select
-              id="filtro-estado"
-              value={filtro}
-              onChange={(event) => setFiltro(event.target.value as FiltroEstado)}
-              className="mt-2 min-h-11 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-2 sm:w-64"
+              id="filtro-categoria"
+              value={categoriaSeleccionada}
+              onChange={(event) => setCategoriaSeleccionada(event.target.value)}
+              className="mt-2 min-h-11 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#2C3E2D]"
               style={{ borderColor: "#e8e4de", background: "#fff", color: "#2C3E2D" }}
             >
-              {estados.map((estado) => (
-                <option key={estado.value} value={estado.value}>
-                  {estado.label}
-                </option>
+              <option value="">Todas las categorías</option>
+              {categorias.map((categoria) => (
+                <option key={categoria} value={categoria}>{categoria}</option>
               ))}
             </select>
           </div>
-          <p className="text-sm" style={{ color: "#6b6b60" }} aria-live="polite">
-            {prendasFiltradas.length} {prendasFiltradas.length === 1 ? "prenda" : "prendas"}
+          <div>
+            <label htmlFor="filtro-vendedora" className="block text-xs font-medium" style={{ color: "#2C3E2D" }}>
+              Filtrar por usuaria
+            </label>
+            <select
+              id="filtro-vendedora"
+              value={vendedoraSeleccionada}
+              onChange={(event) => setVendedoraSeleccionada(event.target.value)}
+              className="mt-2 min-h-11 w-full rounded-xl border px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#2C3E2D]"
+              style={{ borderColor: "#e8e4de", background: "#fff", color: "#2C3E2D" }}
+            >
+              <option value="">Todas las usuarias</option>
+              {vendedoras.map((vendedora) => (
+                <option key={vendedora} value={vendedora}>{vendedora}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end sm:col-span-2 lg:col-span-1">
+            <button
+              ref={botonHistorialRef}
+              type="button"
+              onClick={() => setHistorialAbierto((abierto) => !abierto)}
+              aria-expanded={historialAbierto}
+              aria-controls="historial-decisiones"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-4 text-sm font-medium transition hover:bg-[#A8C5A0]/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
+              style={{ borderColor: "#d8d3ca", color: "#2C3E2D" }}
+            >
+              <Trash2 size={16} aria-hidden="true" />
+              Historial de decisiones ({historial.length})
+            </button>
+          </div>
+          <p className="text-sm sm:col-span-2 lg:col-span-4" style={{ color: "#6b6b60" }} aria-live="polite">
+            {publicacionesFiltradas.length} {publicacionesFiltradas.length === 1 ? "publicación activa" : "publicaciones activas"}
           </p>
         </section>
 
-        {prendasFiltradas.length === 0 ? (
+        <section
+          id="historial-decisiones"
+          aria-label="Historial de decisiones"
+          hidden={!historialAbierto}
+          className="mb-6 rounded-[24px] p-4 sm:p-5"
+          style={{ background: "rgba(255,255,255,0.82)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}
+        >
+          <h2 className="text-lg font-medium" style={{ color: "#2C3E2D" }}>
+            Historial de decisiones
+          </h2>
+          {historial.length === 0 ? (
+            <p className="mt-2 text-sm" style={{ color: "#6b6b60" }}>
+              Todavía no hay publicaciones eliminadas.
+            </p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {historial.map((eliminacion, indice) => (
+                <li
+                  key={`${eliminacion.publicacion.id}-${eliminacion.fechaEliminacion}-${indice}`}
+                  className="rounded-2xl border p-3 sm:p-4"
+                  style={{ borderColor: "#e8e4de", background: "#fff" }}
+                >
+                  <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-baseline">
+                    <h3 className="font-medium" style={{ color: "#2C3E2D" }}>
+                      {eliminacion.publicacion.titulo}
+                    </h3>
+                    <p className="text-xs" style={{ color: "#6b6b60" }}>
+                      Eliminada · {new Date(eliminacion.fechaEliminacion).toLocaleString("es-AR")}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm" style={{ color: "#3d3d35" }}>
+                    <span className="font-medium">Motivo:</span> {eliminacion.motivo}
+                  </p>
+                  <p className="mt-1 text-sm" style={{ color: "#6b6b60" }}>
+                    {eliminacion.explicacion}
+                  </p>
+                  <p className="mt-2 text-xs" style={{ color: "#6b6b60" }}>
+                    Publicó {eliminacion.publicacion.vendedora} · {eliminacion.publicacion.categoria}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {publicacionesFiltradas.length === 0 ? (
           <div
             className="rounded-[24px] px-5 py-14 text-center"
             style={{ background: "rgba(255,255,255,0.82)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}
@@ -97,35 +280,38 @@ export default function AdminPrendasPage() {
               className="mx-auto flex h-14 w-14 items-center justify-center rounded-full"
               style={{ background: "rgba(168,197,160,0.25)", color: "#2C3E2D" }}
             >
-              <Shirt size={26} />
+              <Shirt size={26} aria-hidden="true" />
             </div>
             <h2 className="mt-4 text-lg font-light" style={{ color: "#2C3E2D" }}>
-              No hay prendas con este filtro
+              No hay publicaciones con estos filtros
             </h2>
             <p className="mt-1 text-sm" style={{ color: "#9a9a8e" }}>
-              Probá con otro estado para ver más prendas.
+              Probá con otro nombre, categoría o usuaria.
             </p>
           </div>
         ) : (
-          <section aria-label="Prendas para moderar" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {prendasFiltradas.map((prenda) => (
+          <section aria-label="Publicaciones activas" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {publicacionesFiltradas.map((publicacion) => (
               <article
-                key={prenda.id}
+                key={publicacion.id}
                 className="overflow-hidden rounded-[24px]"
                 style={{ background: "rgba(255,255,255,0.88)", boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}
               >
-                <div className="relative flex h-64 items-center justify-center overflow-hidden sm:h-72" style={{ background: "linear-gradient(135deg,#eaf4eb,#f4ede2)" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={prenda.urlImagen}
-                    alt={prenda.nombre}
-                    className="h-full w-full object-contain p-4"
-                  />
+                <div
+                  className="relative flex h-56 items-center justify-center overflow-hidden sm:h-64"
+                  style={{ background: "linear-gradient(135deg,#eaf4eb,#f4ede2)" }}
+                >
+                  {publicacion.imagen ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={publicacion.imagen} alt={publicacion.titulo} className="h-full w-full object-cover" />
+                  ) : (
+                    <Shirt size={36} aria-hidden="true" style={{ color: "#6b9366" }} />
+                  )}
                   <span
                     className="absolute left-4 top-4 rounded-full px-3 py-1 text-[10px] font-medium tracking-[0.08em]"
-                    style={estilosEstado[prenda.estado]}
+                    style={{ background: "rgba(168,197,160,0.92)", color: "#2C3E2D" }}
                   >
-                    {prenda.estado}
+                    ACTIVA
                   </span>
                 </div>
 
@@ -133,63 +319,59 @@ export default function AdminPrendasPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h2 className="truncate text-lg font-light" style={{ color: "#1a1a1a" }}>
-                        {prenda.nombre}
+                        {publicacion.titulo}
                       </h2>
                       <p className="mt-1 text-[11px] uppercase tracking-[0.13em]" style={{ color: "#9a9a8e" }}>
-                        {prenda.categoria}
+                        {publicacion.categoria}
                       </p>
                     </div>
+                    <p className="shrink-0 text-sm font-medium" style={{ color: "#2C3E2D" }}>
+                      ${publicacion.precio.toLocaleString("es-AR")}
+                    </p>
                   </div>
-                  <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-                    <div>
-                      <dt className="text-[11px]" style={{ color: "#9a9a8e" }}>Color</dt>
-                      <dd style={{ color: "#3d3d35" }}>{prenda.color}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-[11px]" style={{ color: "#9a9a8e" }}>Talle</dt>
-                      <dd style={{ color: "#3d3d35" }}>{prenda.talle}</dd>
-                    </div>
-                    <div className="col-span-2">
-                      <dt className="text-[11px]" style={{ color: "#9a9a8e" }}>Usuaria</dt>
-                      <dd style={{ color: "#3d3d35" }}>{prenda.usuaria}</dd>
-                    </div>
-                  </dl>
 
-                  <div className="mt-5 grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPrendas((actuales) => cambiarEstado(actuales, prenda.id, "APROBADA"))}
-                      aria-label={`Aprobar ${prenda.nombre}`}
-                      className="flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-xs font-medium transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                      style={{ background: "#2C3E2D", color: "#F9F5F0" }}
-                    >
-                      <Check size={15} /> Aprobar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPrendas((actuales) => cambiarEstado(actuales, prenda.id, "RECHAZADA"))}
-                      aria-label={`Rechazar ${prenda.nombre}`}
-                      className="flex min-h-11 items-center justify-center gap-1 rounded-xl border px-2 text-xs font-medium transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                      style={{ borderColor: "rgba(184,85,85,0.3)", color: "#9b4141" }}
-                    >
-                      <X size={15} /> Rechazar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => eliminarPrenda(prenda)}
-                      aria-label={`Eliminar ${prenda.nombre}`}
-                      className="flex min-h-11 items-center justify-center gap-1 rounded-xl border px-2 text-xs font-medium transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                      style={{ borderColor: "#e8e4de", color: "#6b6b60" }}
-                    >
-                      <Trash2 size={15} /> Eliminar
-                    </button>
+                  <p className="mt-3 line-clamp-2 text-sm leading-5" style={{ color: "#6b6b60" }}>
+                    {publicacion.descripcion}
+                  </p>
+                  <p className="mt-3 text-sm" style={{ color: "#3d3d35" }}>
+                    Publicó <span className="font-medium">{publicacion.vendedora}</span>
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {publicacion.etiquetas.map((etiqueta) => (
+                      <span
+                        key={etiqueta}
+                        className="rounded-full px-2 py-1 text-[10px]"
+                        style={{ background: "#f4ede2", color: "#6b6b60" }}
+                      >
+                        #{etiqueta}
+                      </span>
+                    ))}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={(event) => abrirModal(publicacion, event.currentTarget)}
+                    aria-label={`Eliminar publicación ${publicacion.titulo}`}
+                    className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium transition hover:bg-[#fff1d6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
+                    style={{ borderColor: "#c99254", color: "#75450f" }}
+                  >
+                    <Trash2 size={16} aria-hidden="true" />
+                    Eliminar
+                  </button>
                 </div>
               </article>
             ))}
           </section>
         )}
       </div>
+
+      {publicacionSeleccionada && (
+        <ModalMotivoPrenda
+          publicacion={publicacionSeleccionada}
+          onClose={cerrarModal}
+          onConfirm={confirmarEliminacion}
+        />
+      )}
     </main>
   );
 }

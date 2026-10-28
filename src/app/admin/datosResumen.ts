@@ -1,16 +1,16 @@
 // Datos temporales para reemplazar por la API real cuando exista.
 export const resumenAdmin = [
   { id: "usuarias", titulo: "Usuarias registradas", valor: 1284, detalle: "En la comunidad" },
-  { id: "pendientes", titulo: "Prendas pendientes", valor: 18, detalle: "Para revisar" },
+  { id: "activas", titulo: "Publicaciones activas", valor: 7, detalle: "En el marketplace" },
   { id: "reportes", titulo: "Reportes sin resolver", valor: 6, detalle: "Necesitan atención" },
-  { id: "aprobadas", titulo: "Prendas aprobadas", valor: 42, detalle: "Esta semana" },
+  { id: "eliminadas", titulo: "Publicaciones eliminadas", valor: 1, detalle: "En el historial local" },
 ] as const;
 
 export const actividadReciente = [
   {
     id: "actividad-1",
     tipo: "prenda",
-    texto: "Nueva prenda pendiente de María",
+    texto: "Nueva publicación de María en el marketplace",
     tiempo: "Hace 8 min",
   },
   {
@@ -28,7 +28,7 @@ export const actividadReciente = [
   {
     id: "actividad-4",
     tipo: "prenda",
-    texto: "Prenda aprobada para publicación",
+    texto: "Publicación eliminada del marketplace",
     tiempo: "Hace 3 h",
   },
 ] as const;
