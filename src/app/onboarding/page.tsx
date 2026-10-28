@@ -20,10 +20,15 @@ export default function OnboardingPage() {
   });
 
   function toggleArray(key: "tallesArriba" | "tallesAbajo" | "tallesCalzado" | "estilos", value: string) {
-    setForm((f) => ({
-      ...f,
-      [key]: (f as any)[key].includes(value) ? (f as any)[key].filter((v: string) => v !== value) : [...(f as any)[key], value],
-    }));
+    setForm((current) => {
+      const selected = current[key];
+      return {
+        ...current,
+        [key]: selected.includes(value)
+          ? selected.filter((item) => item !== value)
+          : [...selected, value],
+      };
+    });
   }
 
   async function submit(e?: React.FormEvent) {
@@ -118,39 +123,41 @@ export default function OnboardingPage() {
   };
 
   return (
-    <main className="min-h-screen px-5 pt-6 pb-16 relative overflow-hidden" style={{ background: "#F6F9F4" }}>
-      <div className="absolute top-[-80px] left-[-60px] w-80 h-80 rounded-full blur-3xl opacity-30" style={{ background: "#BEE3C7" }} />
-      <div className="relative z-10 max-w-2xl mx-auto">
-        <BackLink href="/" label="Volver" />
-        <div className="bg-gradient-to-r from-[#E6F4EA] to-[#F9F9F7] rounded-xl p-6 shadow-md mb-6">
-          <p className="uppercase text-[10px] tracking-[0.18em]" style={{ color: "#C9A96E" }}>
+    <main className="auth-page min-h-screen px-4 pb-12 pt-5 sm:px-6 sm:pb-16 sm:pt-8">
+      <div className="mx-auto w-full max-w-2xl">
+        <div className="mb-7 flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#0B493D] font-semibold text-[#0B493D]" aria-hidden="true">E</span>
+          <span className="text-sm font-bold uppercase tracking-[0.24em] text-[#0B493D]">ECloset</span>
+        </div>
+        <BackLink href="/" label="Volver" className="!text-[#0B493D] font-semibold" />
+        <header className="mb-7 border-b border-[#C7C2B8] pb-6">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B493D]">
             Bienvenida
           </p>
-          <h1 className="text-[2rem] font-light mt-2 mb-2 text-[#1f3b2f]">Contanos un poco sobre vos ✦</h1>
-          <p className="text-sm mb-2" style={{ color: "#6f6f63" }}>
+          <h1 className="auth-editorial mt-2 text-[2.75rem] leading-none sm:text-5xl">Contanos un poco sobre vos</h1>
+          <p className="mt-3 text-base leading-6 text-[#55524C]">
             Completá este formulario para recibir recomendaciones personalizadas. Podés omitirlo si querés.
           </p>
-          <div className="mt-3 text-sm">El formulario es rápido — seleccioná lo que mejor te represente.</div>
-        </div>
+          <p className="mt-3 text-sm text-[#55524C]">El formulario es rápido: seleccioná lo que mejor te represente.</p>
+        </header>
 
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: "#fff0f0", color: "#cc4444" }}>
+          <div role="alert" className="auth-alert mb-5 px-4 py-3 text-sm">
             {error}
           </div>
         )}
 
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <form onSubmit={submit} className="space-y-4 mb-6">
+        <form onSubmit={submit} className="space-y-6">
           <div>
-            <label className="block text-xs font-medium tracking-wider uppercase mb-2" style={{ color: "#6b6b60" }}>
+            <label htmlFor="onboarding-gender" className="auth-label">
               Género *
             </label>
             <select
+              id="onboarding-gender"
               required
               value={form.genero}
               onChange={(e) => setForm({ ...form, genero: e.target.value })}
-              className="w-full px-4 py-3.5 text-sm outline-none"
-              style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "12px" }}
+              className="auth-input"
             >
               <option value="">Seleccionar</option>
               <option value="Mujer">Mujer</option>
@@ -161,97 +168,97 @@ export default function OnboardingPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium tracking-wider uppercase mb-2 mt-4" style={{ color: "#6b6b60" }}>
+            <p className="auth-label">
               Sistema de talles
-            </label>
-            <div className="flex gap-2">
+            </p>
+            <div role="group" aria-label="Sistema de talles" className="flex flex-wrap gap-2">
               {(["AR", "EU", "US"] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setForm({ ...form, tallaSistema: s })}
                   aria-pressed={form.tallaSistema === s}
-                  className={`px-3 py-2 text-sm rounded-md border transition-transform duration-150 transform hover:-translate-y-0.5 ${form.tallaSistema === s ? "bg-gradient-to-r from-[#7FBF8F] to-[#2C3E2D] text-white shadow-md" : "bg-white text-[#2C3E2D] hover:bg-[#f0f7ef]"}`}
+                  className="auth-choice min-w-16"
                 >
                   {s}
                 </button>
               ))}
             </div>
-            <div className="text-xs text-[#6b6b60] mt-2">Sistema seleccionado: {form.tallaSistema}</div>
+            <div className="mt-2 text-sm text-[#55524C]">Sistema seleccionado: {form.tallaSistema}</div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium tracking-wider uppercase mb-2" style={{ color: "#6b6b60" }}>
+            <p className="auth-label">
               Talles - Parte de arriba *
-            </label>
-            <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 mb-2">
+            </p>
+            <div role="group" aria-label="Talles para parte de arriba" className="mb-2 grid grid-cols-4 gap-2 sm:grid-cols-8">
               {tallaArribaOptions.map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => toggleArray("tallesArriba", t)}
                   aria-pressed={form.tallesArriba.includes(t)}
-                  className={`px-3 py-2 text-sm rounded-md border transition-transform duration-150 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#A8C5A0] active:scale-95 ${form.tallesArriba.includes(t) ? "bg-gradient-to-br from-[#7FBF8F] to-[#2C3E2D] text-white shadow-lg" : "bg-white text-[#2C3E2D] hover:bg-[#f4fbf5]"}`}
+                  className="auth-choice w-full"
                 >
                   {t}
                 </button>
               ))}
             </div>
-            <div className="text-xs text-[#6b6b60]">{equivalencias[form.tallaSistema].arriba}</div>
+            <div className="text-sm leading-5 text-[#55524C]">{equivalencias[form.tallaSistema].arriba}</div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium tracking-wider uppercase mb-2 mt-4" style={{ color: "#6b6b60" }}>
+            <p className="auth-label">
               Talles - Parte de abajo *
-            </label>
-            <div className="grid grid-cols-6 sm:grid-cols-9 gap-2 mb-2">
+            </p>
+            <div role="group" aria-label="Talles para parte de abajo" className="mb-2 grid grid-cols-4 gap-2 sm:grid-cols-6">
               {tallaAbajoOptions.map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => toggleArray("tallesAbajo", t)}
                   aria-pressed={form.tallesAbajo.includes(t)}
-                  className={`px-3 py-2 text-sm rounded-md border transition-transform duration-150 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#A8C5A0] active:scale-95 ${form.tallesAbajo.includes(t) ? "bg-gradient-to-br from-[#7FBF8F] to-[#2C3E2D] text-white shadow-lg" : "bg-white text-[#2C3E2D] hover:bg-[#f4fbf5]"}`}
+                  className="auth-choice w-full"
                 >
                   {t}
                 </button>
               ))}
             </div>
-            <div className="text-xs text-[#6b6b60]">{equivalencias[form.tallaSistema].abajo}</div>
+            <div className="text-sm leading-5 text-[#55524C]">{equivalencias[form.tallaSistema].abajo}</div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium tracking-wider uppercase mb-2 mt-4" style={{ color: "#6b6b60" }}>
+            <p className="auth-label">
               Talles - Calzado
-            </label>
-            <div className="grid grid-cols-6 sm:grid-cols-9 gap-2 mb-2">
+            </p>
+            <div role="group" aria-label="Talles de calzado" className="mb-2 grid grid-cols-4 gap-2 sm:grid-cols-6">
               {tallaCalzadoOptions.map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => toggleArray("tallesCalzado", t)}
                   aria-pressed={form.tallesCalzado.includes(t)}
-                  className={`px-3 py-2 text-sm rounded-md border transition-transform duration-150 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#A8C5A0] active:scale-95 ${form.tallesCalzado.includes(t) ? "bg-gradient-to-br from-[#7FBF8F] to-[#2C3E2D] text-white shadow-lg" : "bg-white text-[#2C3E2D] hover:bg-[#f4fbf5]"}`}
+                  className="auth-choice w-full"
                 >
                   {t}
                 </button>
               ))}
             </div>
-            <div className="text-xs text-[#6b6b60]">{equivalencias[form.tallaSistema].calzado}</div>
+            <div className="text-sm leading-5 text-[#55524C]">{equivalencias[form.tallaSistema].calzado}</div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium tracking-wider uppercase mb-2" style={{ color: "#6b6b60" }}>
+            <p className="auth-label">
               Estilos favoritos
-            </label>
-            <div className="grid grid-cols-2 gap-2">
+            </p>
+            <div role="group" aria-label="Estilos favoritos" className="grid grid-cols-2 gap-2">
               {estiloOptions.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => toggleArray("estilos", s)}
                   aria-pressed={form.estilos.includes(s)}
-                  className={`px-3 py-2 text-sm rounded-md border transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#A8C5A0] active:scale-95 ${form.estilos.includes(s) ? "bg-[#2C3E2D] text-white" : "bg-white text-[#2C3E2D]"}`}
+                  className="auth-choice w-full"
                 >
                   {s}
                 </button>
@@ -260,23 +267,24 @@ export default function OnboardingPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium tracking-wider uppercase mb-2" style={{ color: "#6b6b60" }}>
+            <label htmlFor="onboarding-colors" className="auth-label">
               Colores favoritos (separados por comas)
             </label>
             <input
+              id="onboarding-colors"
+              name="colores"
+              placeholder="Ej.: verde, crema, azul"
               value={form.colores}
               onChange={(e) => setForm({ ...form, colores: e.target.value })}
-              className="w-full px-4 py-3.5 text-sm outline-none"
-              style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "12px" }}
+              className="auth-input"
             />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
             <button
               disabled={loading}
               type="submit"
-              className="flex-1 py-4 text-sm uppercase tracking-[0.15em] rounded-[12px] transform transition-all duration-150 hover:shadow-xl"
-              style={{ background: "linear-gradient(90deg,#7FBF8F,#2C3E2D)", color: "#F9F5F0" }}
+              className="auth-button-primary flex-1"
             >
               {loading ? "Guardando..." : "Guardar y continuar"}
             </button>
@@ -284,14 +292,12 @@ export default function OnboardingPage() {
               type="button"
               onClick={skip}
               disabled={loading}
-              className="flex-1 py-4 text-sm uppercase tracking-[0.15em] rounded-[12px] border transform transition-colors duration-150 hover:bg-[#f4fbf5]"
-              style={{ background: "#fff", color: "#2C3E2D", borderColor: "#e8e4de" }}
+              className="auth-button-secondary flex-1"
             >
               Omitir
             </button>
           </div>
-          </form>
-        </div>
+        </form>
       </div>
     </main>
   );

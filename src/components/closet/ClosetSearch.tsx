@@ -1,6 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
+import styles from "../../app/fashion-sections.module.css";
 
 export default function ClosetSearch({
   value,
@@ -10,17 +11,16 @@ export default function ClosetSearch({
   onChange: (v: string) => void;
 }) {
   return (
-    <div
-      className="flex items-center gap-3 px-4 py-3 rounded-[16px]"
-      style={{ background: "#fff", border: "1px solid #e8e4de" }}
-    >
-      <Search size={18} color="#9a9a8e" />
+    <label className="flex min-h-12 items-center gap-3 rounded-xl border border-[#C7C2B8] bg-white px-4">
+      <Search size={18} color="#0B493D" aria-hidden="true" />
       <input
+        type="search"
+        aria-label="Buscar prendas en el closet"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Buscar en tu closet..."
-        className="w-full outline-none bg-transparent text-sm"
+        className={`${styles.input} border-0 bg-transparent px-0 outline-none focus-visible:outline-none focus-visible:ring-0`}
       />
-    </div>
+    </label>
   );
 }

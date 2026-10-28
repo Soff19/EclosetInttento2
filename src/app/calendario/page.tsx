@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import BackLink from "@/components/BackLink";
 import CalendarGrid from "@/components/calendario/CalendarGrid";
 import CalendarFABModal from "@/components/calendario/CalendarFABModal";
+import styles from "../fashion-sections.module.css";
 
 interface Evento {
   id: string;
@@ -91,59 +92,47 @@ export default function CalendarioPage() {
   });
 
   return (
-    <main
-      className="min-h-screen relative overflow-hidden px-5 pt-6 pb-32"
-      style={{ backgroundColor: "#F9F5F0" }}
-    >
-      <div
-        className="absolute -top-20 -left-15 w-72 h-72 rounded-full blur-3xl opacity-20"
-        style={{ background: "#A8C5A0" }}
-      />
-      <div
-        className="absolute bottom-0 -right-20 w-72 h-72 rounded-full blur-3xl opacity-20"
-        style={{ background: "#C9A96E" }}
-      />
-
-      <section className="relative z-10">
-        <BackLink href="/closet" label="Volver al closet" />
-        <p className="uppercase text-[10px] tracking-[0.18em]" style={{ color: "#6b6b60" }}>
-          Planifica tu estilo
-        </p>
-        <h1 className="text-[2.2rem] font-light tracking-[-0.02em] mt-2">Calendario ✦</h1>
-        <p className="mt-2 text-sm" style={{ color: "#9a9a8e" }}>
+    <main className={`${styles.page} min-h-screen px-1 pb-28 pt-5 sm:px-6 sm:pt-8`}>
+      <div className={`${styles.calendarContent} relative z-10`}>
+      <section>
+        <BackLink href="/closet" label="Volver al closet" className="!text-[#0B493D] font-semibold" />
+        <p className={styles.eyebrow}>Planificá tu estilo</p>
+        <h1 className={styles.title}>Calendario</h1>
+        <p className={styles.subtitle}>
           Organiza tus outfits y eventos en el tiempo.
         </p>
       </section>
 
-      <div className="mt-8 relative z-10">
-        {/* Header del mes */}
-        <div className="flex items-center justify-between mb-6">
+      <section className={`${styles.surface} mt-6 p-0 sm:mt-8 sm:p-6`} aria-label="Calendario mensual">
+        <div className="mb-4 flex items-center justify-between gap-1 px-2 pt-2 sm:mb-6 sm:gap-3 sm:px-0 sm:pt-0">
           <button
             onClick={handleMesAnterior}
-            className="p-2 rounded-lg hover:opacity-70 transition"
-            style={{ backgroundColor: "#F0EBE4" }}
+            type="button"
+            aria-label="Mes anterior"
+            className={`${styles.iconButton} h-11 w-11 rounded-full p-0`}
           >
-            <ChevronLeft size={20} style={{ color: "#2C3E2D" }} />
+            <ChevronLeft size={20} />
           </button>
 
           <h2
-            className="text-lg font-light capitalize"
-            style={{ color: "#2C3E2D" }}
+            className={`${styles.title} mt-0 text-center text-2xl capitalize sm:text-3xl`}
+            aria-live="polite"
           >
             {nombreMes}
           </h2>
 
           <button
             onClick={handleMesSiguiente}
-            className="p-2 rounded-lg hover:opacity-70 transition"
-            style={{ backgroundColor: "#F0EBE4" }}
+            type="button"
+            aria-label="Mes siguiente"
+            className={`${styles.iconButton} h-11 w-11 rounded-full p-0`}
           >
-            <ChevronRight size={20} style={{ color: "#2C3E2D" }} />
+            <ChevronRight size={20} />
           </button>
         </div>
 
         {loading ? (
-          <p style={{ color: "#9a9a8e" }}>Cargando calendario...</p>
+          <p className="py-6 text-center text-sm text-[#55524C]" role="status">Cargando calendario...</p>
         ) : (
           <CalendarGrid
             mes={mes}
@@ -153,18 +142,17 @@ export default function CalendarioPage() {
             selectedDate={selectedDate}
           />
         )}
-      </div>
+      </section>
 
-      {/* Botón FAB flotante */}
       <button
         onClick={handleFABClick}
-        className="fixed bottom-24 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition transform hover:scale-110 z-60"
-        style={{ backgroundColor: "#2C3E2D" }}
+        type="button"
+        aria-label="Agregar al calendario"
+        className={`${styles.primaryButton} fixed bottom-6 right-5 z-40 h-14 w-14 rounded-full p-0 shadow-md sm:bottom-8 sm:right-8`}
       >
-        <Plus size={24} style={{ color: "#F9F5F0" }} />
+        <Plus size={24} />
       </button>
 
-      {/* Modal superpuesto */}
       {showModal && (
         <CalendarFABModal
           selectedDate={selectedDate}
@@ -175,6 +163,7 @@ export default function CalendarioPage() {
           onDateSelected={setSelectedDate}
         />
       )}
+      </div>
     </main>
   );
 }

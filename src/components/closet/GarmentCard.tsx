@@ -1,10 +1,12 @@
 import type { Prenda } from "@/types/prenda";
+import styles from "../../app/fashion-sections.module.css";
 
 interface Props {
   prenda: Prenda;
   selectable?: boolean;
   selected?: boolean;
   onToggle?: () => void;
+  onOpen?: () => void;
 }
 
 function parseTags(raw?: string | null): string[] {
@@ -17,67 +19,56 @@ function parseTags(raw?: string | null): string[] {
   }
 }
 
-export default function GarmentCard({ prenda, selectable, selected, onToggle }: Props) {
+export default function GarmentCard({ prenda, selectable, selected, onToggle, onOpen }: Props) {
   const title = prenda.nombre || prenda.categoria;
   const tags = parseTags(prenda.etiquetas);
 
   return (
     <button
       type="button"
-      onClick={selectable ? onToggle : undefined}
-      className="text-left overflow-hidden rounded-[24px] w-full relative"
-      style={{
-        background: "rgba(255,255,255,0.85)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
-        outline: selected ? "2px solid #2C3E2D" : "none",
-      }}
+      onClick={selectable ? onToggle : onOpen}
+      className={`${styles.garmentCard} w-full`}
+      data-selected={selected}
+      aria-pressed={selectable ? Boolean(selected) : undefined}
+      aria-haspopup={!selectable && onOpen ? "dialog" : undefined}
+      aria-label={selectable ? `${title}, ${selected ? "seleccionada" : "no seleccionada"}` : title}
     >
       {selected && (
         <span
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full flex items-center justify-center text-xs"
-          style={{ background: "#2C3E2D", color: "#F9F5F0" }}
+          className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-[#0B493D] text-xs text-white"
+          aria-hidden="true"
         >
           ✓
         </span>
       )}
-      <div
-        className="aspect-[4/5] w-full flex items-center justify-center overflow-hidden"
-        style={{ background: "linear-gradient(135deg,#eaf4eb,#f4ede2)" }}
-      >
+      <div className={styles.garmentImage}>
         {prenda.urlImagen ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={prenda.urlImagen}
             alt={title}
-            className="block h-full w-full object-contain p-3 sm:p-4"
+            className="block h-full w-full object-contain"
           />
         ) : (
-          <span className="text-5xl">👗</span>
+          <span className="text-center text-xs font-semibold text-[#55524C]">Sin imagen</span>
         )}
       </div>
-      <div className="p-4">
-        <h3 className="font-light text-base" style={{ color: "#1a1a1a" }}>
+      <div className={styles.garmentDetails}>
+        <h3 className={styles.garmentTitle}>
           {title}
         </h3>
-        <p className="text-[11px] uppercase tracking-[0.15em] mt-2" style={{ color: "#9a9a8e" }}>
-          {prenda.categoria}
-          {prenda.talle ? ` · Talle ${prenda.talle}` : ""}
-        </p>
-        {prenda.color && (
-          <p className="text-sm font-light mt-1">Color: {prenda.color}</p>
-        )}
-        {prenda.descripcion && (
-          <p className="text-xs mt-2 line-clamp-2" style={{ color: "#6b6b60" }}>
-            {prenda.descripcion}
-          </p>
-        )}
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          <span className={styles.tag}>{prenda.categoria}</span>
+          {prenda.talle && <span className={styles.tag}>Talle {prenda.talle}</span>}
+        </div>
+        {prenda.color && <p className={styles.garmentMeta}>Color: {prenda.color}</p>}
+        {prenda.descripcion && <p className={`${styles.garmentMeta} line-clamp-2`}>{prenda.descripcion}</p>}
         {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-3">
+          <div className="mt-2 flex flex-wrap gap-1">
             {tags.slice(0, 4).map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded-full text-[10px]"
-                style={{ background: "rgba(168,197,160,0.2)", color: "#3d5c3e" }}
+                className={`${styles.tag} truncate`}
               >
                 #{tag}
               </span>
