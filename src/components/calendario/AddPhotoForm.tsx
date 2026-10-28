@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, Upload, X } from "lucide-react";
-import { getImageKit } from "@/lib/imagekit";
+import styles from "../../app/fashion-sections.module.css";
 
 interface AddPhotoFormProps {
   fecha: Date;
@@ -96,8 +96,8 @@ export default function AddPhotoForm({
     <div>
       <button
         onClick={onBack}
-        className="flex items-center gap-2 mb-4 text-sm font-light transition hover:opacity-70"
-        style={{ color: "#2C3E2D" }}
+        type="button"
+        className="mb-4 flex min-h-10 items-center gap-2 text-sm font-bold text-[#0B493D] hover:underline"
       >
         <ChevronLeft size={16} />
         Atrás
@@ -105,11 +105,11 @@ export default function AddPhotoForm({
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {preview ? (
-          <div className="relative rounded-xl overflow-hidden">
+          <div className={`${styles.surface} relative overflow-hidden`}>
             <img
               src={preview}
               alt="Preview"
-              className="w-full h-48 object-cover"
+              className="h-48 w-full object-contain p-2"
             />
             <button
               type="button"
@@ -117,34 +117,34 @@ export default function AddPhotoForm({
                 setFile(null);
                 setPreview("");
               }}
-              className="absolute top-2 right-2 p-2 rounded-full opacity-80 hover:opacity-100 transition"
-              style={{ backgroundColor: "#F9F5F0" }}
+              aria-label="Quitar imagen"
+              className={`${styles.iconButton} absolute right-2 top-2 h-10 w-10 rounded-full p-0`}
             >
-              <X size={16} style={{ color: "#2C3E2D" }} />
+              <X size={16} />
             </button>
           </div>
         ) : (
           <label
-            className="border-2 rounded-xl p-6 text-center cursor-pointer transition hover:opacity-80"
-            style={{ borderColor: "#e8e4de", borderStyle: "dashed" }}
+            className="cursor-pointer rounded-xl border-2 border-dashed border-[#C7C2B8] bg-white p-6 text-center transition-colors hover:border-[#0B493D] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#0B493D]"
           >
             <div className="flex flex-col items-center gap-2">
-              <Upload size={24} style={{ color: "#A8C5A0" }} />
-              <span className="text-sm font-light" style={{ color: "#9a9a8e" }}>
+              <Upload size={24} aria-hidden="true" className="text-[#0B493D]" />
+              <span className="text-sm font-semibold text-[#55524C]">
                 Toca para seleccionar una foto
               </span>
             </div>
             <input
               type="file"
+              aria-label="Seleccionar foto de outfit"
               accept="image/*"
               onChange={handleFileChange}
-              className="hidden"
+              className="sr-only peer"
             />
           </label>
         )}
 
         {error && (
-          <p className="text-sm" style={{ color: "#e74c3c" }}>
+          <p role="alert" className={styles.error}>
             {error}
           </p>
         )}
@@ -152,8 +152,7 @@ export default function AddPhotoForm({
         <button
           type="submit"
           disabled={loading || !file}
-          className="w-full rounded-xl py-3 font-light transition hover:opacity-80 disabled:opacity-50"
-          style={{ backgroundColor: "#C9A96E", color: "#2C3E2D" }}
+          className={`${styles.primaryButton} w-full`}
         >
           {loading ? "Subiendo..." : "Agregar foto"}
         </button>

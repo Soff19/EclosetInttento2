@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
+import styles from "../../app/fashion-sections.module.css";
 
 interface Outfit {
   id: string;
@@ -94,37 +95,31 @@ export default function AddOutfitForm({
     <div>
       <button
         onClick={onBack}
-        className="flex items-center gap-2 mb-4 text-sm font-light transition hover:opacity-70"
-        style={{ color: "#2C3E2D" }}
+        type="button"
+        className="mb-4 flex min-h-10 items-center gap-2 text-sm font-bold text-[#0B493D] hover:underline"
       >
         <ChevronLeft size={16} />
         Atrás
       </button>
 
       {loadingOutfits ? (
-        <p style={{ color: "#9a9a8e" }}>Cargando outfits...</p>
+        <p role="status" className="text-sm text-[#55524C]">Cargando outfits...</p>
       ) : outfits.length === 0 ? (
-        <p style={{ color: "#9a9a8e" }}>
+        <p className={`${styles.surface} p-4 text-sm text-[#55524C]`}>
           No tienes outfits guardados. Crea uno en tu closet.
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label
-              className="block text-sm font-light mb-2"
-              style={{ color: "#2C3E2D" }}
-            >
+            <label htmlFor="calendar-outfit" className="mb-2 block text-sm font-bold text-[#333333]">
               Selecciona un outfit
             </label>
             <select
+              id="calendar-outfit"
+              name="outfitId"
               value={selectedOutfitId}
               onChange={(e) => setSelectedOutfitId(e.target.value)}
-              className="w-full rounded-[12px] px-4 py-3 border font-light"
-              style={{
-                backgroundColor: "#fff",
-                borderColor: "#e8e4de",
-                color: "#2C3E2D",
-              }}
+              className={styles.input}
             >
               <option value="">-- Elige un outfit --</option>
               {outfits.map((outfit) => (
@@ -137,7 +132,7 @@ export default function AddOutfitForm({
           </div>
 
           {error && (
-            <p className="text-sm" style={{ color: "#e74c3c" }}>
+            <p role="alert" className={styles.error}>
               {error}
             </p>
           )}
@@ -145,8 +140,7 @@ export default function AddOutfitForm({
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-[12px] py-3 font-light transition hover:opacity-80 disabled:opacity-50"
-            style={{ backgroundColor: "#2C3E2D", color: "#F9F5F0" }}
+            className={`${styles.primaryButton} w-full`}
           >
             {loading ? "Agregando..." : "Agregar outfit"}
           </button>

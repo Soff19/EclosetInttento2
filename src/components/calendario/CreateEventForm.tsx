@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
+import styles from "../../app/fashion-sections.module.css";
 
 interface CreateEventFormProps {
   fecha: Date;
@@ -62,8 +63,8 @@ export default function CreateEventForm({
     <div>
       <button
         onClick={onBack}
-        className="flex items-center gap-2 mb-4 text-sm font-light transition hover:opacity-70"
-        style={{ color: "#2C3E2D" }}
+        type="button"
+        className="mb-4 flex min-h-10 items-center gap-2 text-sm font-bold text-[#0B493D] hover:underline"
       >
         <ChevronLeft size={16} />
         Atrás
@@ -71,28 +72,22 @@ export default function CreateEventForm({
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label
-            className="block text-sm font-light mb-2"
-            style={{ color: "#2C3E2D" }}
-          >
+          <label htmlFor="calendar-event-title" className="mb-2 block text-sm font-bold text-[#333333]">
             Título del evento
           </label>
           <input
             type="text"
+            id="calendar-event-title"
+            name="titulo"
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
             placeholder="Ej: Ir de compras"
-            className="w-full rounded-[12px] px-4 py-3 border font-light"
-            style={{
-              backgroundColor: "#fff",
-              borderColor: "#e8e4de",
-              color: "#2C3E2D",
-            }}
+            className={styles.input}
           />
         </div>
 
         {error && (
-          <p className="text-sm" style={{ color: "#e74c3c" }}>
+          <p role="alert" className={styles.error}>
             {error}
           </p>
         )}
@@ -100,8 +95,7 @@ export default function CreateEventForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-[12px] py-3 font-light transition hover:opacity-80 disabled:opacity-50"
-          style={{ backgroundColor: "#A8C5A0", color: "#2C3E2D" }}
+          className={`${styles.primaryButton} w-full`}
         >
           {loading ? "Creando..." : "Crear evento"}
         </button>

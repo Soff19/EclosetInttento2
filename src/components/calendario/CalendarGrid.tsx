@@ -1,5 +1,7 @@
 "use client";
 
+import styles from "../../app/fashion-sections.module.css";
+
 interface Evento {
   id: string;
   fecha: string;
@@ -29,177 +31,124 @@ export default function CalendarGrid({
   const ultimoDia = new Date(anio, mes, 0);
   const diasDelMes = ultimoDia.getDate();
   const diaInicio = primerDia.getDay();
-
   const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const eventosPorDia: Record<number, Evento[]> = {};
 
-  // Crear array de días con eventos
-  const eventosPorDia: { [key: number]: Evento[] } = {};
   eventos.forEach((evento) => {
-    const fecha = new Date(evento.fecha);
-    const dia = fecha.getDate();
-    if (!eventosPorDia[dia]) {
-      eventosPorDia[dia] = [];
-    }
+    const dia = new Date(evento.fecha).getDate();
+    eventosPorDia[dia] ||= [];
     eventosPorDia[dia].push(evento);
   });
 
-  // Función para obtener color según tipo
-  const getTipoLabel = (tipo: string): string => {
-    if (tipo === "evento") return "Evento";
-    if (tipo === "outfit") return "Outfit";
-    if (tipo === "foto") return "Foto";
-    return "";
-  };
+  const celdas: (number | null)[] = [
+    ...Array.from({ length: diaInicio }, () => null),
+    ...Array.from({ length: diasDelMes }, (_, index) => index + 1),
+  ];
 
-  const getTipoColor = (tipo: string): string => {
-    if (tipo === "evento") return "#A8C5A0";
-    if (tipo === "outfit") return "#2C3E2D";
-    if (tipo === "foto") return "#C9A96E";
-    return "#F0EBE4";
-  };
-
-  // Crear array de celdas del calendario
-  const celdas = [];
-  for (let i = 0; i < diaInicio; i++) {
-    celdas.push(null);
-  }
-  for (let i = 1; i <= diasDelMes; i++) {
-    celdas.push(i);
-  }
-
-  // Función para verificar si una fecha es hoy
   const isToday = (date: Date): boolean => {
     const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
+    return date.getDate() === today.getDate()
+      && date.getMonth() === today.getMonth()
+      && date.getFullYear() === today.getFullYear();
   };
 
-  // Función para verificar si una fecha es la seleccionada
-  const isSelected = (date: Date): boolean => {
-    if (!selectedDate) return false;
-    return (
-      date.getDate() === selectedDate.getDate() &&
-      date.getMonth() === selectedDate.getMonth() &&
-      date.getFullYear() === selectedDate.getFullYear()
-    );
-  };
+  const isSelected = (date: Date): boolean => Boolean(
+    selectedDate
+      && date.getDate() === selectedDate.getDate()
+      && date.getMonth() === selectedDate.getMonth()
+      && date.getFullYear() === selectedDate.getFullYear(),
+  );
+
+  const eventLabel = (evento: Evento) =>
+    evento.titulo || evento.outfit?.nombre || (evento.tipo === "outfit" ? "Outfit" : evento.tipo === "foto" ? "Foto" : "Evento");
+  const eventColor = (tipo: Evento["tipo"]) =>
+    tipo === "evento" ? "#6CAF7B" : tipo === "outfit" ? "#0B493D" : "#D4C5F9";
 
   return (
     <div>
-      {/* Encabezado de días de la semana */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="mb-2 grid grid-cols-7 gap-1 sm:gap-2">
         {diasSemana.map((dia) => (
           <div
             key={dia}
-            className="text-center py-2 text-xs font-light"
-            style={{ color: "#9a9a8e" }}
+            className="py-2 text-center text-[10px] font-bold uppercase tracking-wide text-[#55524C] sm:text-xs"
           >
             {dia}
           </div>
         ))}
       </div>
 
-      {/* Días del calendario */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {celdas.map((dia, index) => {
-          if (!dia) {
-            return <div key={index} />;
-          }
+          if (!dia) return <div key={`empty-${index}`} aria-hidden="true" />;
 
           const fecha = new Date(anio, mes - 1, dia);
           const eventosDelDia = eventosPorDia[dia] || [];
-          const hasEventos = eventosDelDia.length > 0;
-          const today = isToday(fecha);
           const selected = isSelected(fecha);
-
-          // Determinar colores y layout según eventos
-          let bgColor = "#fff";
-          let textColor = "#2C3E2D";
-          let borderStyle = "1px solid #e8e4de";
-
-          if (selected) {
-            // Día seleccionado: borde más oscuro y ancho
-            borderStyle = "3px solid #2C3E2D";
-          } else if (today) {
-            // Día actual: borde delgado más oscuro
-            borderStyle = "2px solid #A8C5A0";
-          }
+          const today = isToday(fecha);
+          const accessibleDate = fecha.toLocaleDateString("es-AR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          });
 
           return (
             <button
-              key={index}
+              key={dia}
+              type="button"
               onClick={() => onDayClick(fecha)}
-              className="aspect-square rounded-xl p-1 relative transition hover:opacity-80 flex flex-col items-center justify-center"
-              style={{
-                backgroundColor: bgColor,
-                border: borderStyle,
-              }}
+              aria-label={`${accessibleDate}${eventosDelDia.length ? `, ${eventosDelDia.length} ${eventosDelDia.length === 1 ? "elemento" : "elementos"} agendados` : ""}`}
+              aria-pressed={selected}
+              className={styles.dayCell}
+              data-selected={selected}
+              data-today={today}
             >
-              {/* Número del día */}
-              <div
-                className="text-xs font-light absolute top-1"
-                style={{ color: textColor }}
-              >
-                {today ? "●" : dia}
-                {today && <span className="ml-0.5">{dia}</span>}
-              </div>
-
-              {/* Mostrar eventos */}
-              {hasEventos && (
-                <div className="flex flex-col gap-0.5 mt-3 w-full">
-                  {eventosDelDia.slice(0, 2).map((evento, i) => {
-                    const color = getTipoColor(evento.tipo);
-                    const label = getTipoLabel(evento.tipo);
-                    return (
-                      <div
-                        key={i}
-                        className="rounded text-xs font-light truncate px-1 py-0.5"
+              <span className={styles.dayNumber}>{dia}</span>
+              {eventosDelDia.length > 0 && (
+                <>
+                  <span className={styles.mobileEventMarks} aria-hidden="true">
+                    {eventosDelDia.slice(0, 3).map((evento) => (
+                      <span key={evento.id} className={styles.eventDot} style={{ backgroundColor: eventColor(evento.tipo) }} />
+                    ))}
+                    {eventosDelDia.length > 3 && (
+                      <span className="text-[9px] font-bold text-[#333333]">+{eventosDelDia.length - 3}</span>
+                    )}
+                  </span>
+                  <span className={styles.desktopEventList} aria-hidden="true">
+                    {eventosDelDia.slice(0, 2).map((evento) => (
+                      <span
+                        key={evento.id}
+                        className="w-full truncate rounded px-1 py-0.5 text-left text-[10px] leading-4"
                         style={{
-                          backgroundColor: color,
-                          color: evento.tipo === "outfit" ? "#F9F5F0" : "#2C3E2D",
+                          backgroundColor: evento.tipo === "outfit" ? eventColor(evento.tipo) : evento.tipo === "evento" ? "#C6EFD6" : "#D4C5F9",
+                          color: evento.tipo === "outfit" ? "#FFFFFF" : "#0B493D",
                         }}
                       >
-                        {label}
-                      </div>
-                    );
-                  })}
-                  {eventosDelDia.length > 2 && (
-                    <div className="text-xs font-light" style={{ color: "#9a9a8e" }}>
-                      +{eventosDelDia.length - 2}
-                    </div>
-                  )}
-                </div>
+                        {eventLabel(evento)}
+                      </span>
+                    ))}
+                    {eventosDelDia.length > 2 && (
+                      <span className="text-[10px] font-semibold text-[#55524C]">+{eventosDelDia.length - 2} más</span>
+                    )}
+                  </span>
+                </>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Leyenda */}
-      <div className="mt-6 flex gap-4 text-xs">
+      <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs">
         <div className="flex items-center gap-2">
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: "#A8C5A0" }}
-          />
-          <span style={{ color: "#9a9a8e" }}>Evento</span>
+          <span className="h-2 w-2 rounded-full bg-[#6CAF7B]" />
+          <span className="text-[#55524C]">Evento</span>
         </div>
         <div className="flex items-center gap-2">
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: "#2C3E2D" }}
-          />
-          <span style={{ color: "#9a9a8e" }}>Outfit</span>
+          <span className="h-2 w-2 rounded-full bg-[#0B493D]" />
+          <span className="text-[#55524C]">Outfit</span>
         </div>
         <div className="flex items-center gap-2">
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: "#C9A96E" }}
-          />
-          <span style={{ color: "#9a9a8e" }}>Foto</span>
+          <span className="h-2 w-2 rounded-full bg-[#D4C5F9]" />
+          <span className="text-[#55524C]">Foto</span>
         </div>
       </div>
     </div>

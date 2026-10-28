@@ -1,23 +1,75 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Calendar } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Calendar, Shirt, Layers } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ClosetSearch from "@/components/closet/ClosetSearch";
 import ClosetFilters from "@/components/closet/ClosetFilters";
 import GarmentCard from "@/components/closet/GarmentCard";
+import GarmentDetailModal from "@/components/closet/GarmentDetailModal";
 import BottomNavigation from "@/components/closet/BottomNavigation";
 import BackLink from "@/components/BackLink";
 import type { Prenda } from "@/types/prenda";
+import EditorialSectionBanner from "@/components/EditorialSectionBanner";
+import NewGarmentForm from "@/components/closet/NewGarmentForm";
+import styles from "../fashion-sections.module.css";
 
 export default function ClosetPage() {
   const [prendas, setPrendas] = useState<Prenda[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoriaActiva, setCategoriaActiva] = useState("Todos");
+  const [creationMenuOpen, setCreationMenuOpen] = useState(false);
+  const [newGarmentOpen, setNewGarmentOpen] = useState(false);
+  const [selectedGarment, setSelectedGarment] = useState<Prenda | null>(null);
   const router = useRouter();
+  const creationControlRef = useRef<HTMLDivElement>(null);
+  const creationButtonRef = useRef<HTMLButtonElement>(null);
+  const creationMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!creationMenuOpen) return;
+
+    creationMenuRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!creationControlRef.current?.contains(event.target as Node)) {
+        setCreationMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setCreationMenuOpen(false);
+        creationButtonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [creationMenuOpen]);
+
+  const closeNewGarmentModal = useCallback(() => {
+    setNewGarmentOpen(false);
+    creationButtonRef.current?.focus();
+  }, []);
+
+  const handleNewGarmentSaved = useCallback(() => {
+    setNewGarmentOpen(false);
+    requestAnimationFrame(() => creationButtonRef.current?.focus());
+  }, []);
+
+  const closeGarmentDetails = useCallback(() => {
+    setSelectedGarment(null);
+  }, []);
+
+  useEffect(() => {
+    if (newGarmentOpen) return;
+
     (async () => {
       try {
         const token = localStorage.getItem("token");
@@ -31,7 +83,7 @@ export default function ClosetPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [newGarmentOpen]);
 
   const categorias = useMemo(() => [...new Set(prendas.map((p) => p.categoria))], [prendas]);
 
@@ -45,67 +97,135 @@ export default function ClosetPage() {
   }, [prendas, search, categoriaActiva]);
 
   return (
-    <main className="min-h-screen relative overflow-hidden px-5 pt-6 pb-32" style={{ backgroundColor: "#F9F5F0" }}>
-      <div className="absolute -top-20 -left-15 w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#A8C5A0" }} />
-      <div className="absolute bottom-0 -right-20 w-72 h-72 rounded-full blur-3xl opacity-20" style={{ background: "#C9A96E" }} />
-
-      <section className="relative z-10">
-        <div className="flex items-start justify-between mb-4">
-          <BackLink href="/home" label="Volver al home" />
+    <main className={`${styles.page} min-h-screen px-0 pb-32 pt-0`}>
+      <EditorialSectionBanner
+        id="closet-title"
+        eyebrow="Tu espacio personal"
+        title="Mi Closet"
+        description="Organizá tu estilo y encontrá cada prenda fácilmente."
+        intro={<BackLink href="/home" label="Volver al inicio" iconOnly className={`!mb-0 ${styles.bannerBackLink}`} />}
+      >
+        <div ref={creationControlRef} className={styles.closetCreateControl}>
           <button
-            onClick={() => router.push("/calendario")}
-            className="p-2 rounded-lg hover:opacity-70 transition"
-            style={{ backgroundColor: "#F0EBE4" }}
-            title="Ir al calendario"
+            ref={creationButtonRef}
+            type="button"
+            className={styles.closetCreateButton}
+            aria-label={creationMenuOpen ? "Cerrar opciones de creación" : "Crear prenda u outfit"}
+            aria-haspopup="menu"
+            aria-expanded={creationMenuOpen}
+            aria-controls="closet-create-menu"
+            onClick={() => setCreationMenuOpen((open) => !open)}
           >
-            <Calendar size={20} style={{ color: "#2C3E2D" }} />
+            <Plus size={24} aria-hidden="true" />
           </button>
+          {creationMenuOpen && (
+            <div
+              ref={creationMenuRef}
+              id="closet-create-menu"
+              role="menu"
+              aria-label="Opciones de creación"
+              className={styles.closetCreateMenu}
+              onKeyDown={(event) => {
+                const items = Array.from(
+                  event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'),
+                );
+                const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
+                let nextIndex = currentIndex;
+
+                if (event.key === "ArrowDown") nextIndex = (currentIndex + 1) % items.length;
+                else if (event.key === "ArrowUp") nextIndex = (currentIndex - 1 + items.length) % items.length;
+                else if (event.key === "Home") nextIndex = 0;
+                else if (event.key === "End") nextIndex = items.length - 1;
+                else if (event.key === "Escape") {
+                  event.preventDefault();
+                  setCreationMenuOpen(false);
+                  creationButtonRef.current?.focus();
+                  return;
+                } else {
+                  return;
+                }
+
+                event.preventDefault();
+                items[nextIndex]?.focus();
+              }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                tabIndex={0}
+                className={styles.closetCreateOption}
+                onClick={() => {
+                  setCreationMenuOpen(false);
+                  setNewGarmentOpen(true);
+                }}
+              >
+                <Shirt size={18} className="mr-3 shrink-0" aria-hidden="true" />
+                Agregar prenda al closet
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                tabIndex={-1}
+                className={styles.closetCreateOption}
+                onClick={() => {
+                  setCreationMenuOpen(false);
+                  router.push("/outfits/crear");
+                }}
+              >
+                <Layers size={18} className="mr-3 shrink-0" aria-hidden="true" />
+                Crear outfit
+              </button>
+            </div>
+          )}
         </div>
-        <p className="uppercase text-[10px] tracking-[0.18em]" style={{ color: "#6b6b60" }}>
-          Tu espacio personal
-        </p>
-        <h1 className="text-[2.2rem] font-light tracking-[-0.02em] mt-2">Mi Closet ✦</h1>
-        <p className="mt-2 text-sm" style={{ color: "#9a9a8e" }}>
-          Organizá tu estilo y encontrá cada prenda fácilmente.
-        </p>
-      </section>
+        <button
+          onClick={() => router.push("/calendario")}
+          type="button"
+          className={`${styles.iconButton} h-12 w-12 rounded-xl p-0`}
+          aria-label="Ir al calendario"
+          title="Ir al calendario"
+        >
+          <Calendar size={19} aria-hidden="true" />
+        </button>
+      </EditorialSectionBanner>
 
-      <button
-        onClick={() => router.push("/prendas/nueva")}
-        className="mt-6 w-full rounded-xl py-4 flex items-center justify-center gap-2"
-        style={{ background: "#2C3E2D", color: "#F9F5F0" }}
-      >
-        <Plus size={18} />
-        NUEVA PRENDA
-      </button>
+      <div className={`${styles.content} relative z-10 px-4 pt-6 sm:px-6`}>
+        <div className="space-y-4">
+          <ClosetSearch value={search} onChange={setSearch} />
+          <ClosetFilters
+            categorias={categorias}
+            activa={categoriaActiva}
+            onChange={setCategoriaActiva}
+          />
+        </div>
 
-      <button
-        onClick={() => router.push("/outfits/crear")}
-        className="mt-3 w-full rounded-xl py-4 flex items-center justify-center gap-2"
-        style={{ background: "#fff", color: "#2C3E2D", border: "1px solid #e8e4de" }}
-      >
-        <Plus size={18} />
-        NUEVO OUTFIT
-      </button>
-
-      <div className="mt-6 relative z-10 space-y-4">
-        <ClosetSearch value={search} onChange={setSearch} />
-        <ClosetFilters
-          categorias={categorias}
-          activa={categoriaActiva}
-          onChange={setCategoriaActiva}
-        />
+        <section className={`${styles.garmentGrid} mt-5`} aria-label="Prendas de tu closet">
+          {loading && <p className="col-span-full text-sm text-[#55524C]" role="status">Cargando prendas...</p>}
+          {!loading && prendasFiltradas.length === 0 && (
+            <p className={`${styles.surface} col-span-full p-5 text-sm text-[#55524C]`}>
+              {prendas.length === 0 ? "Todavía no hay prendas. Sumá la primera." : "No hay prendas que coincidan con la búsqueda y categoría."}
+            </p>
+          )}
+          {prendasFiltradas.map((prenda) => (
+            <GarmentCard
+              key={prenda.id}
+              prenda={prenda}
+              onOpen={() => setSelectedGarment(prenda)}
+            />
+          ))}
+        </section>
       </div>
 
-      <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
-        {loading && <p style={{ color: "#9a9a8e" }}>Cargando...</p>}
-        {!loading && prendasFiltradas.length === 0 && (
-          <p style={{ color: "#9a9a8e" }}>Todavía no hay prendas. ¡Sumá la primera!</p>
-        )}
-        {prendasFiltradas.map((prenda) => (
-          <GarmentCard key={prenda.id} prenda={prenda} />
-        ))}
-      </section>
+      {selectedGarment && (
+        <GarmentDetailModal prenda={selectedGarment} onClose={closeGarmentDetails} />
+      )}
+
+      {newGarmentOpen && (
+        <NewGarmentForm
+          onClose={closeNewGarmentModal}
+          onSaved={handleNewGarmentSaved}
+        />
+      )}
 
       <BottomNavigation />
     </main>

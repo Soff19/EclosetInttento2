@@ -1,5 +1,7 @@
 "use client";
 
+import styles from "../../app/fashion-sections.module.css";
+
 export default function ClosetFilters({
   categorias,
   activa,
@@ -11,19 +13,16 @@ export default function ClosetFilters({
 }) {
   const chips = ["Todos", ...categorias];
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1">
+    <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filtrar por categoría">
       {chips.map((cat) => {
         const active = activa === cat;
         return (
           <button
             key={cat}
             onClick={() => onChange(cat)}
-            className="px-4 py-2 rounded-full text-xs uppercase tracking-[0.12em] whitespace-nowrap"
-            style={{
-              background: active ? "#2C3E2D" : "#fff",
-              color: active ? "#F9F5F0" : "#6b6b60",
-              border: "1px solid #e8e4de",
-            }}
+            type="button"
+            aria-pressed={active}
+            className={styles.filterChip}
           >
             {cat}
           </button>

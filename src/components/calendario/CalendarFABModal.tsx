@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X, ChevronLeft } from "lucide-react";
+import { X, ChevronLeft, CalendarDays, Shirt, Image as ImageIcon } from "lucide-react";
+import styles from "../../app/fashion-sections.module.css";
 import CreateEventForm from "./CreateEventForm";
 import AddOutfitForm from "./AddOutfitForm";
 import AddPhotoForm from "./AddPhotoForm";
@@ -52,20 +53,26 @@ export default function CalendarFABModal({
   });
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-100 flex items-end justify-center">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="calendar-fab-title"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-[#0B493D]/45 px-0 py-0 backdrop-blur-[2px] sm:items-center sm:px-4 sm:py-6"
+    >
       <div
-        className="w-full rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto"
-        style={{ backgroundColor: "#F9F5F0" }}
+        className={`${styles.calendarModal} sm:rounded-2xl`}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-light" style={{ color: "#2C3E2D" }}>
+          <h2 id="calendar-fab-title" className="max-w-[80%] text-lg font-bold capitalize text-[#0B493D] sm:text-xl">
             {formType === "dateSelect" ? "Selecciona una fecha" : fechaFormato || "Modal"}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:opacity-70 transition"
+            type="button"
+            aria-label="Cerrar"
+            className={`${styles.iconButton} h-10 w-10 rounded-full p-0`}
           >
-            <X size={20} style={{ color: "#2C3E2D" }} />
+            <X size={20} />
           </button>
         </div>
 
@@ -82,8 +89,8 @@ export default function CalendarFABModal({
             {!selectedDate && (
               <button
                 onClick={handleBack}
-                className="flex items-center gap-2 mb-4 text-sm font-light transition hover:opacity-70"
-                style={{ color: "#2C3E2D" }}
+                type="button"
+                className="mb-4 flex min-h-10 items-center gap-2 text-sm font-bold text-[#0B493D] hover:underline"
               >
                 <ChevronLeft size={16} />
                 Atrás
@@ -92,42 +99,33 @@ export default function CalendarFABModal({
 
             <button
               onClick={() => setFormType("evento")}
-              className="w-full rounded-xl py-4 px-4 text-left transition hover:opacity-80"
-              style={{ backgroundColor: "#A8C5A0", color: "#2C3E2D" }}
+              type="button"
+              className={styles.modalChoice}
             >
-              <div className="font-light">📝 Crear evento</div>
-              <div
-                className="text-xs mt-1"
-                style={{ color: "#2C3E2D", opacity: 0.7 }}
-              >
+              <div className="flex items-center gap-2 font-bold text-[#0B493D]"><CalendarDays size={18} aria-hidden="true" /> Crear evento</div>
+              <div className="mt-1 text-sm text-[#55524C]">
                 Añade una nota o recordatorio para este día
               </div>
             </button>
 
             <button
               onClick={() => setFormType("outfit")}
-              className="w-full rounded-xl py-4 px-4 text-left transition hover:opacity-80"
-              style={{ backgroundColor: "#2C3E2D", color: "#F9F5F0" }}
+              type="button"
+              className={styles.modalChoice}
             >
-              <div className="font-light">👗 Agregar outfit</div>
-              <div
-                className="text-xs mt-1"
-                style={{ color: "#F9F5F0", opacity: 0.7 }}
-              >
+              <div className="flex items-center gap-2 font-bold text-[#0B493D]"><Shirt size={18} aria-hidden="true" /> Agregar outfit</div>
+              <div className="mt-1 text-sm text-[#55524C]">
                 Selecciona uno de tus outfits guardados
               </div>
             </button>
 
             <button
               onClick={() => setFormType("foto")}
-              className="w-full rounded-xl py-4 px-4 text-left transition hover:opacity-80"
-              style={{ backgroundColor: "#C9A96E", color: "#2C3E2D" }}
+              type="button"
+              className={styles.modalChoice}
             >
-              <div className="font-light">📸 Agregar foto de outfit</div>
-              <div
-                className="text-xs mt-1"
-                style={{ color: "#2C3E2D", opacity: 0.7 }}
-              >
+              <div className="flex items-center gap-2 font-bold text-[#0B493D]"><ImageIcon size={18} aria-hidden="true" /> Agregar foto de outfit</div>
+              <div className="mt-1 text-sm text-[#55524C]">
                 Sube una imagen de tu look para este día
               </div>
             </button>
@@ -189,19 +187,18 @@ function DateSelector({ mes, anio, onDateSelected }: DateSelectorProps) {
 
   return (
     <div>
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className={`${styles.dateSelectorWeek} mb-2 grid grid-cols-7 gap-1 sm:gap-2`}>
         {diasSemana.map((dia) => (
           <div
             key={dia}
-            className="text-center py-2 text-xs font-light"
-            style={{ color: "#9a9a8e" }}
+            className="py-2 text-center text-[10px] font-bold uppercase text-[#55524C] sm:text-xs"
           >
             {dia}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className={`${styles.dateSelectorGrid} grid grid-cols-7 gap-1 sm:gap-2`}>
         {celdas.map((dia, index) => {
           if (!dia) {
             return <div key={index} />;
@@ -211,12 +208,9 @@ function DateSelector({ mes, anio, onDateSelected }: DateSelectorProps) {
             <button
               key={index}
               onClick={() => onDateSelected(new Date(anio, mes - 1, dia))}
-              className="aspect-square rounded-xl flex items-center justify-center font-light transition hover:opacity-80"
-              style={{
-                backgroundColor: "#fff",
-                border: "1px solid #e8e4de",
-                color: "#2C3E2D",
-              }}
+              type="button"
+              className={`${styles.dayCell} ${styles.dateSelectCell}`}
+              aria-label={new Date(anio, mes - 1, dia).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
             >
               {dia}
             </button>
