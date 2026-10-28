@@ -5,13 +5,26 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, Search, Sun } from "lucide-react";
 import BottomNavigation from "@/components/closet/BottomNavigation";
+import HomeCarousel, { type HomeCarouselItem } from "@/components/home/HomeCarousel";
+import type { Prenda } from "@/types/prenda";
 
 type User = { nombre: string | null; email: string };
+type Outfit = {
+  id: string;
+  nombre: string;
+  categoria?: string | null;
+  descripcion?: string | null;
+  outfitPrendas: { prenda: Prenda }[];
+};
 
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [noLeidas, setNoLeidas] = useState(0);
+  const [prendas, setPrendas] = useState<Prenda[]>([]);
+  const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [loadingCloset, setLoadingCloset] = useState(true);
+  const [closetError, setClosetError] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -24,6 +37,34 @@ export default function HomePage() {
       setUser(data.user);
     })();
   }, [router]);
+
+  useEffect(() => {
+    async function loadCloset() {
+      try {
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+        const [prendasResponse, outfitsResponse] = await Promise.all([
+          fetch("/api/prendas", { headers, credentials: "include" }),
+          fetch("/api/outfits", { headers, credentials: "include" }),
+        ]);
+        if (!prendasResponse.ok || !outfitsResponse.ok) {
+          throw new Error("No pudimos cargar tu closet. Intentá actualizar la página.");
+        }
+        const [prendasData, outfitsData] = await Promise.all([
+          prendasResponse.json(),
+          outfitsResponse.json(),
+        ]);
+        setPrendas(prendasData.prendas || []);
+        setOutfits(outfitsData.outfits || []);
+      } catch (error) {
+        setClosetError(error instanceof Error ? error.message : "Error al cargar tu closet.");
+      } finally {
+        setLoadingCloset(false);
+      }
+    }
+
+    void loadCloset();
+  }, []);
 
   useEffect(() => {
     async function loadUnread() {
@@ -46,6 +87,33 @@ export default function HomePage() {
     window.addEventListener("notificaciones:actualizadas", loadUnread);
     return () => window.removeEventListener("notificaciones:actualizadas", loadUnread);
   }, []);
+
+  const prendasCarousel: HomeCarouselItem[] = prendas.map((prenda) => ({
+    id: prenda.id,
+    title: prenda.nombre || prenda.categoria,
+    category: prenda.categoria,
+    description: [
+      prenda.color ? `Color ${prenda.color}` : "",
+      prenda.talle ? `Talle ${prenda.talle}` : "",
+      prenda.descripcion || "",
+    ].filter(Boolean).join(" · ") || "Una prenda de tu closet.",
+    href: "/closet",
+    images: [{ src: prenda.urlImagen, alt: prenda.nombre || prenda.categoria }],
+    details: [prenda.color, prenda.talle ? `Talle ${prenda.talle}` : ""].filter((value): value is string => Boolean(value)),
+  }));
+
+  const outfitsCarousel: HomeCarouselItem[] = outfits.map((outfit) => ({
+    id: outfit.id,
+    title: outfit.nombre,
+    category: outfit.categoria || "Sin categoría",
+    description: outfit.descripcion || `${outfit.outfitPrendas.length} prendas en este look.`,
+    href: `/outfits?outfit=${encodeURIComponent(outfit.id)}`,
+    images: outfit.outfitPrendas.slice(0, 4).map(({ prenda }) => ({
+      src: prenda.urlImagen,
+      alt: prenda.nombre || prenda.categoria,
+    })),
+    details: [`${outfit.outfitPrendas.length} ${outfit.outfitPrendas.length === 1 ? "prenda" : "prendas"}`],
+  }));
 
   return (
     <main className="min-h-screen relative overflow-hidden px-5 pb-28 pt-6" style={{ backgroundColor: "#F9F5F0" }}>
@@ -101,6 +169,28 @@ export default function HomePage() {
           <Sun size={42} color="#F9F5F0" />
         </div>
       </section>
+
+      <div className="relative z-10 mx-auto mb-7 grid w-full max-w-6xl grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch">
+        <HomeCarousel
+          title="Mis prendas"
+          eyebrow="Tu colección"
+          items={prendasCarousel}
+          loading={loadingCloset}
+          error={closetError}
+          emptyMessage="Todavía no tenés prendas. Sumá la primera a tu closet."
+          layout="garment"
+        />
+
+        <HomeCarousel
+          title="Mis outfits"
+          eyebrow="Looks guardados"
+          items={outfitsCarousel}
+          loading={loadingCloset}
+          error={closetError}
+          emptyMessage="Todavía no guardaste outfits. ¡Armá tu primer look!"
+          layout="outfit"
+        />
+      </div>
 
       <section className="grid grid-cols-2 gap-3 relative z-10">
         {[
