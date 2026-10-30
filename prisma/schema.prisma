@@ -25,6 +25,8 @@ model Usuario {
   notificacionesRecibidas Notificacion[] @relation("NotificacionDestinatario")
   notificacionesEnviadas Notificacion[] @relation("NotificacionActor")
   eventosCalendario EventoCalendario[]
+  resenasVendedorRecibidas ResenaVendedor[] @relation("ResenaVendedorDestinatario")
+  resenasVendedorEnviadas ResenaVendedor[] @relation("ResenaVendedorAutor")
 }
 
 model Prenda {
@@ -108,9 +110,11 @@ model Compra {
   creadoEn   DateTime @default(now())
   comprador  Usuario  @relation(fields: [compradorId], references: [id], onDelete: Cascade)
   producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  resenaVendedor ResenaVendedor?
 
   @@unique([compradorId, productoId])
   @@index([productoId])
+  @@index([compradorId, estado])
 }
 
 model Notificacion {
@@ -127,6 +131,7 @@ model Notificacion {
   producto       Producto? @relation(fields: [productoId], references: [id], onDelete: SetNull)
 
   @@index([destinatarioId, creadoEn])
+  @@index([destinatarioId, leidaEn])
   @@index([productoId])
   @@unique([destinatarioId, actorId, productoId, tipo])
 }
@@ -143,6 +148,22 @@ model ResenaProducto {
 
   @@unique([usuarioId, productoId])
   @@index([productoId])
+}
+
+model ResenaVendedor {
+  id          String   @id @default(uuid())
+  compraId    String   @unique
+  compradorId String
+  vendedorId  String
+  puntuacion  Int
+  comentario String?  @db.Text
+  creadoEn    DateTime @default(now())
+  compra      Compra  @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  comprador   Usuario @relation("ResenaVendedorAutor", fields: [compradorId], references: [id], onDelete: Cascade)
+  vendedor    Usuario @relation("ResenaVendedorDestinatario", fields: [vendedorId], references: [id], onDelete: Cascade)
+
+  @@index([vendedorId, creadoEn])
+  @@index([compradorId])
 }
 
 model EventoCalendario {

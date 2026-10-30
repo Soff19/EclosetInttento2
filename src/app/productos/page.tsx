@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Heart, Plus, Search, Star, X } from "lucide-react";
+import { ExternalLink, Heart, Plus, Search, Star, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import BackLink from "@/components/BackLink";
 import BottomNavigation from "@/components/closet/BottomNavigation";
@@ -23,9 +23,11 @@ type Producto = {
   etiquetas: string[];
   contacto: string | null;
   favorito: boolean;
+  solicitudEstado: string | null;
   promedio: number | null;
   cantidadResenas: number;
   resenas: Resena[];
+  esPropio: boolean;
   usuario: {
     id: string;
     nombre: string | null;
@@ -34,12 +36,47 @@ type Producto = {
   };
 };
 
+type ApiResponse = Record<string, unknown>;
+
+function unexpectedResponseMessage(status: number) {
+  if (status === 404) {
+    return "El servidor no encontró esta ruta (404). Actualizá la página y, si el problema continúa, contactá al equipo de EClOset.";
+  }
+  return `El servidor devolvió una respuesta inesperada (HTTP ${status}). Intentá nuevamente.`;
+}
+
+async function readApiResponse<T extends ApiResponse>(response: Response): Promise<T> {
+  const contentType = response.headers.get("content-type")?.toLowerCase() || "";
+  if (!contentType.includes("application/json") && !contentType.includes("+json")) {
+    throw new Error(unexpectedResponseMessage(response.status));
+  }
+
+  try {
+    const data: unknown = await response.json();
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error("Respuesta JSON inválida");
+    }
+    return data as T;
+  } catch {
+    throw new Error(unexpectedResponseMessage(response.status));
+  }
+}
+
+function getApiError(data: ApiResponse, fallback: string) {
+  return typeof data.error === "string" ? data.error : fallback;
+}
+
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState("");
+  const [activeTab, setActiveTab] = useState<"explorar" | "mias">("explorar");
   const [selected, setSelected] = useState<Producto | null>(null);
   const [message, setMessage] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [review, setReview] = useState({ puntuacion: 5, comentario: "" });
 
   useEffect(() => {
@@ -47,27 +84,32 @@ export default function ProductosPage() {
       const params = new URLSearchParams();
       if (query) params.set("q", query);
       if (tag) params.set("etiqueta", tag);
+      if (activeTab === "mias") params.set("mias", "true");
       const res = await fetch(`/api/productos?${params}`);
-      const data = await res.json();
-      if (res.ok) {
-        const loadedProducts = data.productos || [];
-        setProductos(loadedProducts);
-        const requestedProductId = new URLSearchParams(window.location.search).get("producto");
-        if (requestedProductId) {
-          const requestedProduct = loadedProducts.find((item: Producto) => item.id === requestedProductId);
-          if (requestedProduct) setSelected(requestedProduct);
-          else {
-            const response = await fetch(`/api/productos?id=${encodeURIComponent(requestedProductId)}`);
-            const result = await response.json();
-            if (response.ok && result.productos?.[0]) setSelected(result.productos[0]);
-          }
+      const data = await readApiResponse<{ productos?: Producto[]; error?: string }>(res);
+      if (!res.ok) {
+        setProductos([]);
+        setLoadError(getApiError(data, "No se pudieron cargar las publicaciones."));
+        return;
+      }
+      setLoadError("");
+      const loadedProducts = data.productos || [];
+      setProductos(loadedProducts);
+      const requestedProductId = new URLSearchParams(window.location.search).get("producto");
+      if (requestedProductId) {
+        const requestedProduct = loadedProducts.find((item: Producto) => item.id === requestedProductId);
+        if (requestedProduct) setSelected(requestedProduct);
+        else {
+          const response = await fetch(`/api/productos?id=${encodeURIComponent(requestedProductId)}`);
+          const result = await readApiResponse<{ productos?: Producto[] }>(response);
+          if (response.ok && result.productos?.[0]) setSelected(result.productos[0]);
         }
       }
     }, 250);
     return () => clearTimeout(timer);
-  }, [query, tag]);
+  }, [query, tag, activeTab]);
 
-  async function action(path: string, body?: object) {
+  async function action<T extends ApiResponse = ApiResponse>(path: string, body?: object): Promise<T> {
     const token = localStorage.getItem("token");
     const res = await fetch(path, {
       method: "POST",
@@ -78,15 +120,15 @@ export default function ProductosPage() {
       credentials: "include",
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    const data = await res.json();
+    const data = await readApiResponse<T>(res);
     if (!res.ok)
-      throw new Error(data.error || "No se pudo completar la acción");
+      throw new Error(getApiError(data, "No se pudo completar la acción"));
     return data;
   }
 
   async function toggleFavorite(producto: Producto) {
     try {
-      const data = await action(`/api/productos/${producto.id}/favorito`);
+      const data = await action<{ favorito: boolean }>(`/api/productos/${producto.id}/favorito`);
       setProductos((items) =>
         items.map((item) =>
           item.id === producto.id ? { ...item, favorito: data.favorito } : item,
@@ -103,25 +145,56 @@ export default function ProductosPage() {
 
   async function buy(producto: Producto) {
     try {
-      const result = await action(`/api/productos/${producto.id}/comprar`);
+      const result = await action<{
+        created?: boolean;
+        emailSent?: boolean | null;
+        compra?: { estado: string };
+      }>(`/api/productos/${producto.id}/comprar`);
+      const solicitudEstado = result.compra?.estado || "PENDIENTE";
       window.dispatchEvent(new Event("notificaciones:actualizadas"));
-      setMessage(result.created === false
-        ? "Ya habías enviado una solicitud para esta publicación."
-        : producto.contacto
-          ? "Solicitud registrada. Ya avisamos al vendedor; puedes contactarlo para coordinar."
-          : "Solicitud registrada y vendedor notificado. Esta publicación no tiene un contacto externo.");
+      setMessage(
+        result.created === false
+          ? `Ya existe una solicitud tuya para esta publicación (estado: ${solicitudEstado.toLowerCase()}).`
+          : result.emailSent
+            ? "Solicitud pendiente registrada. El vendedor recibió una notificación en EClOset y un correo."
+            : "Solicitud pendiente registrada y aviso guardado en EClOset. No pudimos enviar el correo al vendedor; no hace falta que repitas la solicitud.",
+      );
       setProductos((items) =>
         items.map((item) =>
-          item.id === producto.id ? { ...item, estado: "RESERVADO" } : item,
+          item.id === producto.id ? { ...item, solicitudEstado } : item,
         ),
       );
-      setSelected({ ...producto, estado: "RESERVADO" });
+      setSelected({ ...producto, solicitudEstado });
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
           : "No se pudo registrar la compra",
       );
+    }
+  }
+
+  async function deleteProduct() {
+    if (!selected) return;
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/productos/${selected.id}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      });
+      const data = await readApiResponse<{ error?: string }>(res);
+      if (!res.ok) throw new Error(getApiError(data, "No se pudo eliminar la publicación"));
+      setProductos((items) => items.filter((item) => item.id !== selected.id));
+      setSelected(null);
+      setConfirmDelete(false);
+      setDeleteError("");
+      setMessage("Publicación eliminada.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "No se pudo eliminar la publicación");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -180,6 +253,25 @@ export default function ProductosPage() {
             </Link>
           </div>
         </div>
+        <div className="mt-5 flex gap-2">
+          {([
+            ["explorar", "Explorar"],
+            ["mias", "Mis publicaciones"],
+          ] as const).map(([tab, label]) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="rounded-full px-4 py-2 text-sm"
+              style={{
+                background: activeTab === tab ? "#2C3E2D" : "#fff",
+                color: activeTab === tab ? "#fff" : "#6b6b60",
+                border: "1px solid #e8e4de",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <p
           className="uppercase text-[10px] tracking-[0.18em] mt-5"
           style={{ color: "#6b6b60" }}
@@ -217,9 +309,9 @@ export default function ProductosPage() {
             ),
           )}
         </div>
-        {message && (
-          <p className="mt-4 text-sm" style={{ color: "#2C3E2D" }}>
-            {message}
+        {(message || loadError) && (
+          <p className="mt-4 text-sm" style={{ color: loadError ? "#b85555" : "#2C3E2D" }}>
+            {loadError || message}
           </p>
         )}
         <div className="grid gap-4 mt-6 sm:grid-cols-2">
@@ -256,7 +348,7 @@ export default function ProductosPage() {
                     <span className="font-medium">${producto.precio}</span>
                   </div>
                   <p className="text-xs mt-2" style={{ color: "#9a9a8e" }}>
-                    {producto.usuario.nombre || "Vendedor"} · {producto.estado}
+                    {producto.esPropio ? "Mi publicación" : producto.usuario.nombre || producto.usuario.email} · {producto.estado}
                   </p>
                   <div className="flex flex-wrap gap-1 mt-3">
                     {producto.etiquetas.slice(0, 3).map((item) => (
@@ -295,9 +387,11 @@ export default function ProductosPage() {
             </article>
           ))}
         </div>
-        {productos.length === 0 && (
+        {productos.length === 0 && !loadError && (
           <p className="mt-8" style={{ color: "#9a9a8e" }}>
-            No encontramos publicaciones con esos filtros.
+            {activeTab === "mias"
+              ? "Todavía no hiciste publicaciones."
+              : "No encontramos publicaciones con esos filtros."}
           </p>
         )}
       </div>
@@ -337,21 +431,43 @@ export default function ProductosPage() {
               </span>
             </div>
             <p className="mt-4 text-sm">
-              Vende{" "}
-              <strong>
-                {selected.usuario.nombre || selected.usuario.email}
-              </strong>
+              {selected.esPropio ? (
+                <strong>Tu publicación</strong>
+              ) : (
+                <>Vende <strong>{selected.usuario.nombre || selected.usuario.email}</strong></>
+              )}
             </p>
             <div className="flex gap-3 mt-5">
-              <button
-                disabled={selected.estado !== "DISPONIBLE"}
-                onClick={() => buy(selected)}
-                className="flex-1 rounded-xl py-3 text-sm disabled:opacity-40"
-                style={{ background: "#2C3E2D", color: "#fff" }}
-              >
-                Comprar
-              </button>
-              {selected.contacto && (
+              {selected.esPropio ? (
+                <button
+                  onClick={() => {
+                    setDeleteError("");
+                    setConfirmDelete(true);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-sm"
+                  style={{ background: "#b85555", color: "#fff" }}
+                >
+                  <Trash2 size={16} /> Eliminar publicación
+                </button>
+              ) : (
+                <button
+                  disabled={selected.estado !== "DISPONIBLE" || selected.solicitudEstado !== null}
+                  onClick={() => buy(selected)}
+                  className="flex-1 rounded-xl py-3 text-sm disabled:opacity-40"
+                  style={{ background: "#2C3E2D", color: "#fff" }}
+                >
+                  {selected.solicitudEstado === "PENDIENTE"
+                    ? "Solicitud pendiente"
+                    : selected.solicitudEstado === "ACEPTADA"
+                      ? "Solicitud aceptada"
+                      : selected.solicitudEstado === "CONCRETADA"
+                        ? "Compra concretada"
+                        : selected.solicitudEstado === "DENEGADA"
+                          ? "Solicitud denegada"
+                          : "Solicitar compra"}
+                </button>
+              )}
+              {!selected.esPropio && selected.contacto && (
                 <a
                   href={selected.contacto}
                   target="_blank"
@@ -444,6 +560,48 @@ export default function ProductosPage() {
                 style={{ background: "#fff", border: "1px solid #e8e4de" }}
               >
                 Guardar reseña
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {confirmDelete && selected && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-5"
+          style={{ background: "rgba(26,26,26,0.55)" }}
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="confirm-delete-title"
+            className="w-full max-w-sm rounded-2xl p-6"
+            style={{ background: "#F9F5F0" }}
+          >
+            <h2 id="confirm-delete-title" className="text-lg font-medium">
+              ¿Estás seguro de eliminar esta publicación?
+            </h2>
+            <p className="mt-2 text-sm" style={{ color: "#6b6b60" }}>
+              Esta acción no se puede deshacer.
+            </p>
+            {deleteError && (
+              <p className="mt-3 text-sm" style={{ color: "#b85555" }}>{deleteError}</p>
+            )}
+            <div className="mt-5 flex gap-3">
+              <button
+                disabled={deleting}
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 rounded-xl py-3 text-sm disabled:opacity-50"
+                style={{ border: "1px solid #e8e4de", color: "#2C3E2D" }}
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={deleting}
+                onClick={deleteProduct}
+                className="flex-1 rounded-xl py-3 text-sm disabled:opacity-50"
+                style={{ background: "#b85555", color: "#fff" }}
+              >
+                {deleting ? "Eliminando..." : "Aceptar"}
               </button>
             </div>
           </section>
