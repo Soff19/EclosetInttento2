@@ -23,6 +23,7 @@ type Producto = {
   etiquetas: string[];
   contacto: string | null;
   favorito: boolean;
+  solicitudEstado: string | null;
   promedio: number | null;
   cantidadResenas: number;
   resenas: Resena[];
@@ -34,6 +35,36 @@ type Producto = {
     email: string;
   };
 };
+
+type ApiResponse = Record<string, unknown>;
+
+function unexpectedResponseMessage(status: number) {
+  if (status === 404) {
+    return "El servidor no encontró esta ruta (404). Actualizá la página y, si el problema continúa, contactá al equipo de EClOset.";
+  }
+  return `El servidor devolvió una respuesta inesperada (HTTP ${status}). Intentá nuevamente.`;
+}
+
+async function readApiResponse<T extends ApiResponse>(response: Response): Promise<T> {
+  const contentType = response.headers.get("content-type")?.toLowerCase() || "";
+  if (!contentType.includes("application/json") && !contentType.includes("+json")) {
+    throw new Error(unexpectedResponseMessage(response.status));
+  }
+
+  try {
+    const data: unknown = await response.json();
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error("Respuesta JSON inválida");
+    }
+    return data as T;
+  } catch {
+    throw new Error(unexpectedResponseMessage(response.status));
+  }
+}
+
+function getApiError(data: ApiResponse, fallback: string) {
+  return typeof data.error === "string" ? data.error : fallback;
+}
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -55,10 +86,10 @@ export default function ProductosPage() {
       if (tag) params.set("etiqueta", tag);
       if (activeTab === "mias") params.set("mias", "true");
       const res = await fetch(`/api/productos?${params}`);
-      const data = await res.json();
+      const data = await readApiResponse<{ productos?: Producto[]; error?: string }>(res);
       if (!res.ok) {
         setProductos([]);
-        setLoadError(data.error || "No se pudieron cargar las publicaciones.");
+        setLoadError(getApiError(data, "No se pudieron cargar las publicaciones."));
         return;
       }
       setLoadError("");
@@ -70,7 +101,7 @@ export default function ProductosPage() {
         if (requestedProduct) setSelected(requestedProduct);
         else {
           const response = await fetch(`/api/productos?id=${encodeURIComponent(requestedProductId)}`);
-          const result = await response.json();
+          const result = await readApiResponse<{ productos?: Producto[] }>(response);
           if (response.ok && result.productos?.[0]) setSelected(result.productos[0]);
         }
       }
@@ -78,7 +109,7 @@ export default function ProductosPage() {
     return () => clearTimeout(timer);
   }, [query, tag, activeTab]);
 
-  async function action(path: string, body?: object) {
+  async function action<T extends ApiResponse = ApiResponse>(path: string, body?: object): Promise<T> {
     const token = localStorage.getItem("token");
     const res = await fetch(path, {
       method: "POST",
@@ -89,15 +120,15 @@ export default function ProductosPage() {
       credentials: "include",
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    const data = await res.json();
+    const data = await readApiResponse<T>(res);
     if (!res.ok)
-      throw new Error(data.error || "No se pudo completar la acción");
+      throw new Error(getApiError(data, "No se pudo completar la acción"));
     return data;
   }
 
   async function toggleFavorite(producto: Producto) {
     try {
-      const data = await action(`/api/productos/${producto.id}/favorito`);
+      const data = await action<{ favorito: boolean }>(`/api/productos/${producto.id}/favorito`);
       setProductos((items) =>
         items.map((item) =>
           item.id === producto.id ? { ...item, favorito: data.favorito } : item,
@@ -114,19 +145,26 @@ export default function ProductosPage() {
 
   async function buy(producto: Producto) {
     try {
-      const result = await action(`/api/productos/${producto.id}/comprar`);
+      const result = await action<{
+        created?: boolean;
+        emailSent?: boolean | null;
+        compra?: { estado: string };
+      }>(`/api/productos/${producto.id}/comprar`);
+      const solicitudEstado = result.compra?.estado || "PENDIENTE";
       window.dispatchEvent(new Event("notificaciones:actualizadas"));
-      setMessage(result.created === false
-        ? "Ya habías enviado una solicitud para esta publicación."
-        : producto.contacto
-          ? "Solicitud registrada. Ya avisamos al vendedor; puedes contactarlo para coordinar."
-          : "Solicitud registrada y vendedor notificado. Esta publicación no tiene un contacto externo.");
+      setMessage(
+        result.created === false
+          ? `Ya existe una solicitud tuya para esta publicación (estado: ${solicitudEstado.toLowerCase()}).`
+          : result.emailSent
+            ? "Solicitud pendiente registrada. El vendedor recibió una notificación en EClOset y un correo."
+            : "Solicitud pendiente registrada y aviso guardado en EClOset. No pudimos enviar el correo al vendedor; no hace falta que repitas la solicitud.",
+      );
       setProductos((items) =>
         items.map((item) =>
-          item.id === producto.id ? { ...item, estado: "RESERVADO" } : item,
+          item.id === producto.id ? { ...item, solicitudEstado } : item,
         ),
       );
-      setSelected({ ...producto, estado: "RESERVADO" });
+      setSelected({ ...producto, solicitudEstado });
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -146,8 +184,8 @@ export default function ProductosPage() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         credentials: "include",
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo eliminar la publicación");
+      const data = await readApiResponse<{ error?: string }>(res);
+      if (!res.ok) throw new Error(getApiError(data, "No se pudo eliminar la publicación"));
       setProductos((items) => items.filter((item) => item.id !== selected.id));
       setSelected(null);
       setConfirmDelete(false);
@@ -413,12 +451,20 @@ export default function ProductosPage() {
                 </button>
               ) : (
                 <button
-                  disabled={selected.estado !== "DISPONIBLE"}
+                  disabled={selected.estado !== "DISPONIBLE" || selected.solicitudEstado !== null}
                   onClick={() => buy(selected)}
                   className="flex-1 rounded-xl py-3 text-sm disabled:opacity-40"
                   style={{ background: "#2C3E2D", color: "#fff" }}
                 >
-                  Comprar
+                  {selected.solicitudEstado === "PENDIENTE"
+                    ? "Solicitud pendiente"
+                    : selected.solicitudEstado === "ACEPTADA"
+                      ? "Solicitud aceptada"
+                      : selected.solicitudEstado === "CONCRETADA"
+                        ? "Compra concretada"
+                        : selected.solicitudEstado === "DENEGADA"
+                          ? "Solicitud denegada"
+                          : "Solicitar compra"}
                 </button>
               )}
               {!selected.esPropio && selected.contacto && (

@@ -21,6 +21,7 @@ export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [noLeidas, setNoLeidas] = useState(0);
+  const [unreadError, setUnreadError] = useState("");
   const [prendas, setPrendas] = useState<Prenda[]>([]);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loadingCloset, setLoadingCloset] = useState(true);
@@ -71,21 +72,39 @@ export default function HomePage() {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch("/api/notificaciones?limit=1", {
+          cache: "no-store",
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           credentials: "include",
         });
-        if (response.ok) {
-          const data = await response.json();
-          setNoLeidas(data.noLeidas || 0);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "No se pudo actualizar el contador de notificaciones.");
         }
-      } catch {
-        setNoLeidas(0);
+        setNoLeidas(data.noLeidas);
+        setUnreadError("");
+      } catch (error) {
+        setUnreadError(
+          error instanceof Error
+            ? error.message
+            : "No se pudo actualizar el contador de notificaciones.",
+        );
       }
     }
 
     void loadUnread();
     window.addEventListener("notificaciones:actualizadas", loadUnread);
-    return () => window.removeEventListener("notificaciones:actualizadas", loadUnread);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void loadUnread();
+    };
+    const interval = window.setInterval(refreshWhenVisible, 30_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.removeEventListener("notificaciones:actualizadas", loadUnread);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.clearInterval(interval);
+    };
   }, []);
 
   const prendasCarousel: HomeCarouselItem[] = prendas.map((prenda) => ({
@@ -155,6 +174,11 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+      {unreadError && (
+        <p role="status" className="relative z-10 -mt-5 mb-5 text-xs" style={{ color: "#b85555" }}>
+          {unreadError} El contador conserva el último dato disponible.
+        </p>
+      )}
 
       <section
         className="rounded-[24px] p-5 mb-7 relative overflow-hidden"

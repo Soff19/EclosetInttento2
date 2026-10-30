@@ -42,13 +42,17 @@ export async function GET(request: NextRequest) {
         usuario: { select: { id: true, nombre: true, fotoPerfil: true, email: true } },
         favoritos: { select: { usuarioId: true } },
         resenas: { include: { usuario: { select: { nombre: true, email: true } } }, orderBy: { creadoEn: "desc" } },
+        compras: user
+          ? { where: { compradorId: user.id }, select: { estado: true }, take: 1 }
+          : false,
       },
     });
     return NextResponse.json({
-      productos: productos.map(({ favoritos, resenas, ...producto }) => ({
-        ...producto,
-        etiquetas: producto.etiquetas ? JSON.parse(producto.etiquetas) : [],
-        favorito: user ? favoritos.some((item) => item.usuarioId === user.id) : false,
+    productos: productos.map(({ favoritos, resenas, compras, ...producto }) => ({
+      ...producto,
+      etiquetas: producto.etiquetas ? JSON.parse(producto.etiquetas) : [],
+      favorito: user ? favoritos.some((item) => item.usuarioId === user.id) : false,
+      solicitudEstado: compras[0]?.estado || null,
         esPropio: user?.id === producto.usuarioId,
         promedio: resenas.length ? resenas.reduce((sum, item) => sum + item.puntuacion, 0) / resenas.length : null,
         cantidadResenas: resenas.length,
