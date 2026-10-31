@@ -12,8 +12,10 @@ export const MARKETPLACE_STYLES = [
   ["elegante", "Elegante"],
   ["deportivo", "Deportivo"],
 ] as const;
+const OTHER_STYLE = "otro";
 export const MARKETPLACE_TYPES = [
   ["short", "Short"],
+  ["pantalon", "Pantalón"],
   ["remera", "Remera"],
   ["blusa", "Blusa"],
   ["vestido", "Vestido"],
@@ -36,6 +38,7 @@ const SIZE_GROUP_BY_TYPE: Record<string, keyof typeof MARKETPLACE_SIZE_GROUPS> =
   vestido: "arriba",
   camisa: "arriba",
   short: "abajo",
+  pantalon: "abajo",
   zapatos: "calzado",
 };
 export const MARKETPLACE_COLORS = [
@@ -49,6 +52,7 @@ export const MARKETPLACE_COLORS = [
   ["amarillo", "Amarillo"],
   ["verde", "Verde"],
   ["azul", "Azul"],
+  ["celeste", "Celeste"],
   ["violeta", "Violeta"],
   ["rosa", "Rosa"],
   ["multicolor", "Multicolor"],
@@ -77,6 +81,7 @@ export default function NuevoProductoForm({
   const [sistemaTalle, setSistemaTalle] = useState<"AR" | "EU" | "US">("AR");
   const [tipo, setTipo] = useState("");
   const [estilo, setEstilo] = useState("");
+  const [estiloPersonalizado, setEstiloPersonalizado] = useState("");
   const [form, setForm] = useState({ titulo: "", descripcion: "", precio: "", contacto: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -142,6 +147,19 @@ export default function NuevoProductoForm({
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!form.titulo.trim() || !form.precio || !tipo || !file) { setError("Título, tipo de prenda, precio e imagen son obligatorios."); return; }
+    const customStyleTag = estiloPersonalizado
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-|-$/g, "");
+    if (!estilo || (estilo === OTHER_STYLE && !customStyleTag)) {
+      setError(estilo === OTHER_STYLE
+        ? "Escribí un estilo válido en la opción «Otro»."
+        : "Elegí un estilo para la prenda.");
+      return;
+    }
     if (!color || !talle) { setError("Elegí un color y un talle para la prenda."); return; }
     setSaving(true); setError("");
     try {
@@ -155,7 +173,9 @@ export default function NuevoProductoForm({
       const etiquetas = [
         ...tags,
         `tipo-${tipo}`,
-        ...(estilo ? [estilo] : []),
+        ...(estilo === OTHER_STYLE
+          ? [`estilo-${customStyleTag}`]
+          : [estilo]),
         ...(color ? [`color-${color}`] : []),
         `talle-${talle.toLowerCase()}`,
         `sistema-${sistemaTalle.toLowerCase()}`,
@@ -228,13 +248,62 @@ export default function NuevoProductoForm({
             {MARKETPLACE_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
-        <label className={styles.marketplaceFormField}>
-          <span className={styles.marketplaceChoiceLegend}>Estilo <span>(opcional)</span></span>
-          <select value={estilo} onChange={(event) => setEstilo(event.target.value)} className={styles.marketplaceSelect}>
-            <option value="">Sin especificar</option>
-            {MARKETPLACE_STYLES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </label>
+        <fieldset className={styles.marketplaceChoiceGroup}>
+          <legend className={styles.marketplaceChoiceLegend}>Estilo <span>(obligatorio)</span></legend>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Estilo de la prenda" aria-required="true">
+            {MARKETPLACE_STYLES.map(([value, label]) => (
+              <label
+                key={value}
+                className={`${styles.marketplaceStyleChoice} ${estilo === value ? styles.marketplaceStyleChoiceSelected : ""}`}
+                data-garment-interactive={modal ? "" : undefined}
+              >
+                <input
+                  type="radio"
+                  name="estilo-prenda"
+                  value={value}
+                  checked={estilo === value}
+                  onChange={() => {
+                    setEstilo(value);
+                    setError("");
+                  }}
+                  className="sr-only"
+                />
+                {label}
+              </label>
+            ))}
+            <label
+              className={`${styles.marketplaceStyleChoice} ${styles.marketplaceOtherStyleChoice} ${estilo === OTHER_STYLE ? styles.marketplaceStyleChoiceSelected : ""}`}
+              data-garment-interactive={modal ? "" : undefined}
+            >
+              <input
+                type="radio"
+                name="estilo-prenda"
+                value={OTHER_STYLE}
+                checked={estilo === OTHER_STYLE}
+                onChange={() => {
+                  setEstilo(OTHER_STYLE);
+                  setError("");
+                }}
+                className="sr-only"
+              />
+              <span>Otro</span>
+              <input
+                type="text"
+                value={estiloPersonalizado}
+                onFocus={() => setEstilo(OTHER_STYLE)}
+                onChange={(event) => {
+                  setEstilo(OTHER_STYLE);
+                  setEstiloPersonalizado(event.target.value);
+                  setError("");
+                }}
+                maxLength={40}
+                aria-label="Escribí otro estilo"
+                placeholder="Escribí..."
+                className={styles.marketplaceOtherStyleInput}
+              />
+            </label>
+          </div>
+        </fieldset>
         <fieldset className={styles.marketplaceChoiceGroup}>
           <legend className={styles.marketplaceChoiceLegend}>Color <span>(obligatorio)</span></legend>
           <div className="flex flex-wrap gap-2">

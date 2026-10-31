@@ -490,6 +490,63 @@
   color: #f7f1e7;
 }
 
+.marketplaceStyleChoice {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #e5e1d9;
+  border-radius: 0.75rem;
+  background: #f7f1e7;
+  padding: 0.5rem 0.875rem;
+  color: #333;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.marketplaceStyleChoice:hover {
+  transform: translateY(-1px);
+  border-color: #a8bc99;
+}
+
+.marketplaceStyleChoiceSelected {
+  border-color: #0b493d;
+  background: #0b493d;
+  color: #f7f1e7;
+}
+
+.marketplaceStyleChoice:focus-within {
+  outline: 2px solid #a8bc99;
+  outline-offset: 2px;
+}
+
+.marketplaceOtherStyleInput {
+  width: 5.5rem;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid #a8bc99;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.marketplaceOtherStyleInput::placeholder {
+  color: #6b6b60;
+  opacity: 1;
+}
+
+.marketplaceStyleChoiceSelected .marketplaceOtherStyleInput {
+  border-bottom-color: #c6efd6;
+  color: #f7f1e7;
+}
+
+.marketplaceStyleChoiceSelected .marketplaceOtherStyleInput::placeholder {
+  color: rgb(247 241 231 / 75%);
+}
+
 .marketplacePublishCancel,
 .marketplacePublishSubmit {
   flex: 1;

@@ -29,9 +29,135 @@ type MarketProduct = {
   precio: number;
   estado: string;
   imagen: string | null;
+  etiquetas: unknown;
   favorito: boolean;
   usuario: { nombre: string | null; email: string };
 };
+type MarketPreferences = {
+  tallaSistema: string;
+  tallesArriba: string[];
+  tallesAbajo: string[];
+  tallesCalzado: string[];
+  estilos: string[];
+  colores: string[];
+};
+
+const EMPTY_MARKET_PREFERENCES: MarketPreferences = {
+  tallaSistema: "",
+  tallesArriba: [],
+  tallesAbajo: [],
+  tallesCalzado: [],
+  estilos: [],
+  colores: [],
+};
+
+function normalizeMarketAttribute(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function readMarketProductTags(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((tag): tag is string => typeof tag === "string");
+  }
+  if (typeof value !== "string" || !value.trim()) return [];
+
+  const trimmed = value.trim();
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((tag): tag is string => typeof tag === "string");
+    }
+    if (typeof parsed === "string" && parsed !== trimmed) {
+      return readMarketProductTags(parsed);
+    }
+  } catch {
+    return trimmed.split(",").map((tag) => tag.trim()).filter(Boolean);
+  }
+
+  return trimmed.split(",").map((tag) => tag.trim()).filter(Boolean);
+}
+
+function readMarketPreferences(value: unknown): MarketPreferences {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return EMPTY_MARKET_PREFERENCES;
+  }
+  const preferences = value as Partial<Omit<MarketPreferences, "colores">> & { colores?: unknown };
+  return {
+    tallaSistema: typeof preferences.tallaSistema === "string"
+      ? normalizeMarketAttribute(preferences.tallaSistema)
+      : "",
+    tallesArriba: Array.isArray(preferences.tallesArriba)
+      ? preferences.tallesArriba.filter((size): size is string => typeof size === "string").map(normalizeMarketAttribute)
+      : [],
+    tallesAbajo: Array.isArray(preferences.tallesAbajo)
+      ? preferences.tallesAbajo.filter((size): size is string => typeof size === "string").map(normalizeMarketAttribute)
+      : [],
+    tallesCalzado: Array.isArray(preferences.tallesCalzado)
+      ? preferences.tallesCalzado.filter((size): size is string => typeof size === "string").map(normalizeMarketAttribute)
+      : [],
+    estilos: Array.isArray(preferences.estilos)
+      ? preferences.estilos
+          .filter((style): style is string => typeof style === "string")
+          .map((style) => {
+            const normalized = normalizeMarketAttribute(style);
+            return normalized === "formal" ? "elegante" : normalized;
+          })
+      : [],
+    colores: typeof preferences.colores === "string"
+      ? preferences.colores.split(",").map(normalizeMarketAttribute).filter(Boolean)
+      : [],
+  };
+}
+
+function getMarketProductCompatibility(
+  product: MarketProduct,
+  preferences: MarketPreferences,
+): [number, number, number] | null {
+  const tags = readMarketProductTags(product.etiquetas).map(normalizeMarketAttribute);
+  const type = tags.find((tag) => tag.startsWith("tipo-"))?.slice("tipo-".length);
+  const sizeCategories = ["short", "pantalon"].includes(type || "")
+    ? [preferences.tallesAbajo]
+    : type === "zapatos"
+      ? [preferences.tallesCalzado]
+      : ["remera", "blusa", "vestido", "camisa"].includes(type || "")
+        ? [preferences.tallesArriba]
+        : [preferences.tallesArriba, preferences.tallesAbajo, preferences.tallesCalzado];
+  const productSize = tags.find((tag) => tag.startsWith("talle-"))?.slice("talle-".length);
+  const productSystem = tags.find((tag) => tag.startsWith("sistema-"))?.slice("sistema-".length);
+  const hasMatchingSize = Boolean(
+    productSize
+    && sizeCategories.some((sizes) => sizes.includes(productSize)),
+  );
+
+  if (
+    !hasMatchingSize
+    || !productSystem
+    || productSystem !== preferences.tallaSistema
+  ) {
+    return null;
+  }
+
+  const productStyles = tags
+    .filter((tag) => tag.startsWith("estilo-"))
+    .map((tag) => tag.slice("estilo-".length))
+    .map((style) => style === "formal" ? "elegante" : style);
+  tags
+    .filter((tag) => ["casual", "vintage", "verano", "elegante", "formal", "deportivo"].includes(tag))
+    .forEach((tag) => productStyles.push(tag === "formal" ? "elegante" : tag));
+  const matchesStyle = preferences.estilos.some((style) => productStyles.includes(style));
+  const productColors = tags
+    .filter((tag) => tag.startsWith("color-"))
+    .map((tag) => tag.slice("color-".length));
+  const matchesColor = preferences.colores.some((color) => productColors.includes(color));
+
+  return [0, matchesStyle ? 1 : 0, matchesColor ? 1 : 0];
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -42,8 +168,12 @@ export default function HomePage() {
   const [prendas, setPrendas] = useState<Prenda[]>([]);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
+  const [marketPreferences, setMarketPreferences] = useState<MarketPreferences>(EMPTY_MARKET_PREFERENCES);
+  const [preferencesLoading, setPreferencesLoading] = useState(true);
+  const preferencesRequestId = useRef(0);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketError, setMarketError] = useState("");
+  const [recommendationError, setRecommendationError] = useState("");
   const [favoriteError, setFavoriteError] = useState("");
   const [clima, setClima] = useState<DatosClima | null>(null);
   const [loadingCloset, setLoadingCloset] = useState(true);
@@ -162,6 +292,55 @@ export default function HomePage() {
     void loadMarketProducts();
   }, []);
 
+  useEffect(() => {
+    const loadMarketPreferences = async () => {
+      const requestId = ++preferencesRequestId.current;
+      setPreferencesLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/user/preferences", {
+          cache: "no-store",
+          headers: token ? { Authorization: "Bearer " + token } : undefined,
+          credentials: "include",
+        });
+        const data: { preferences?: unknown; error?: string } = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "No se pudieron cargar tus preferencias de talle, estilo y color.");
+        }
+        if (requestId !== preferencesRequestId.current) return;
+        setMarketPreferences(readMarketPreferences(data.preferences));
+        setRecommendationError("");
+      } catch (error) {
+        if (requestId !== preferencesRequestId.current) return;
+        setRecommendationError(
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar tus preferencias de talle, estilo y color.",
+        );
+      } finally {
+        if (requestId === preferencesRequestId.current) setPreferencesLoading(false);
+      }
+    };
+
+    void loadMarketPreferences();
+    const refreshPreferences = () => {
+      if (document.visibilityState === "visible") void loadMarketPreferences();
+    };
+    window.addEventListener("focus", refreshPreferences);
+    window.addEventListener("pageshow", refreshPreferences);
+    window.addEventListener("popstate", refreshPreferences);
+    window.addEventListener("preferences:actualizadas", refreshPreferences);
+    document.addEventListener("visibilitychange", refreshPreferences);
+    return () => {
+      window.removeEventListener("focus", refreshPreferences);
+      window.removeEventListener("pageshow", refreshPreferences);
+      window.removeEventListener("popstate", refreshPreferences);
+      window.removeEventListener("preferences:actualizadas", refreshPreferences);
+      document.removeEventListener("visibilitychange", refreshPreferences);
+      preferencesRequestId.current += 1;
+    };
+  }, []);
+
   const prendasCarousel: HomeCarouselItem[] = prendas.map((prenda) => ({
     id: prenda.id,
     title: prenda.nombre || prenda.categoria,
@@ -189,16 +368,30 @@ export default function HomePage() {
     details: [`${outfit.outfitPrendas.length} ${outfit.outfitPrendas.length === 1 ? "prenda" : "prendas"}`],
   }));
 
-  const marketCarousel: HomeCarouselItem[] = marketProducts.map((producto) => ({
-    id: producto.id,
-    title: producto.titulo,
-    category: producto.estado,
-    description: producto.descripcion || `Publicado por ${producto.usuario.nombre || producto.usuario.email}.`,
-    href: `/productos?producto=${encodeURIComponent(producto.id)}`,
-    images: producto.imagen ? [{ src: producto.imagen, alt: producto.titulo }] : [],
-    details: [`$${producto.precio}`],
-    favorite: producto.favorito,
-  }));
+  const marketCarousel: HomeCarouselItem[] = (user
+    ? marketProducts.filter(
+        (producto) => producto.usuario.email.trim().toLowerCase() !== user.email.trim().toLowerCase(),
+      )
+    : [])
+    .flatMap((producto) => {
+      const compatibility = getMarketProductCompatibility(producto, marketPreferences);
+      return compatibility ? [{ producto, compatibility }] : [];
+    })
+    .sort((a, b) =>
+      a.compatibility[0] - b.compatibility[0]
+      || b.compatibility[1] - a.compatibility[1]
+      || b.compatibility[2] - a.compatibility[2],
+    )
+    .map(({ producto }) => ({
+      id: producto.id,
+      title: producto.titulo,
+      category: producto.estado,
+      description: producto.descripcion || `Publicado por ${producto.usuario.nombre || producto.usuario.email}.`,
+      href: `/productos?producto=${encodeURIComponent(producto.id)}`,
+      images: producto.imagen ? [{ src: producto.imagen, alt: producto.titulo }] : [],
+      details: [`$${producto.precio}`],
+      favorite: producto.favorito,
+    }));
 
   const favoritesCarousel = marketProducts
     .filter((producto) => producto.favorito)
@@ -289,11 +482,20 @@ export default function HomePage() {
         <div className="mb-5">
           <HomeCarousel
             title="Recomendaciones del Market"
-            eyebrow="Publicaciones disponibles"
+            eyebrow=""
             items={marketCarousel}
-            loading={marketLoading}
-            error={marketError}
-            emptyMessage="Todavía no hay publicaciones disponibles en el Market."
+            loading={marketLoading || preferencesLoading || !user}
+            error={marketError || recommendationError}
+            emptyMessage={
+              !marketPreferences.tallaSistema
+              || ![
+                ...marketPreferences.tallesArriba,
+                ...marketPreferences.tallesAbajo,
+                ...marketPreferences.tallesCalzado,
+              ].length
+                ? "Completá tus talles en Mi perfil para ver publicaciones de tu medida."
+                : "Todavía no hay publicaciones disponibles que coincidan con tus talles."
+            }
             layout="market"
             onToggleFavorite={toggleMarketFavorite}
           />

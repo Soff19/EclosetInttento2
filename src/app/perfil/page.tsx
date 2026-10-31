@@ -197,6 +197,7 @@ export default function PerfilPage() {
       if (!response.ok) throw new Error(data.error || "No se pudieron guardar tus preferencias.");
       setPreferences(readPreferences(data.preferences));
       setPreferencesMessage("Preferencias actualizadas.");
+      window.dispatchEvent(new Event("preferences:actualizadas"));
     } catch (saveError) {
       setPreferencesError(saveError instanceof Error ? saveError.message : "No se pudieron guardar tus preferencias.");
     } finally {

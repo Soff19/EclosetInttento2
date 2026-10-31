@@ -57,9 +57,11 @@ export default function HomeCarousel({
     >
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b6b60]">
-            {eyebrow}
-          </p>
+          {eyebrow && (
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b6b60]">
+              {eyebrow}
+            </p>
+          )}
           <h2 className="mt-1 font-[family-name:var(--font-cormorant-garamond)] text-2xl leading-tight text-[#0B493D]">{title}</h2>
         </div>
         {items.length > 1 && (

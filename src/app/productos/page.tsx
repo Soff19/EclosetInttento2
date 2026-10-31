@@ -85,6 +85,9 @@ function getProductTags(value: unknown): string[] {
 function formatProductTag(tag: string): string {
   const [category, ...parts] = tag.split("-");
   const value = parts.join("-");
+  if (category === "estilo" && value) {
+    return `Estilo: ${value.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}`;
+  }
   if (category === "tipo" && value) {
     const type = MARKETPLACE_TYPES.find(([option]) => option === value)?.[1];
     return `Tipo: ${type || value}`;
@@ -144,6 +147,17 @@ export default function ProductosPage() {
     );
   });
   const selectedProductTags = selected ? getProductTags(selected.etiquetas) : [];
+  const customStyleOptions = Array.from(new Set(
+    productos
+      .flatMap((producto) => getProductTags(producto.etiquetas))
+      .filter((productTag) =>
+        productTag.startsWith("estilo-")
+        && !MARKETPLACE_STYLES.some(([value]) => value === productTag),
+      ),
+  )).map((value) => ({
+    value,
+    label: formatProductTag(value).replace(/^Estilo: /, ""),
+  }));
   const filterControls = [
     {
       id: "style" as const,
@@ -152,6 +166,7 @@ export default function ProductosPage() {
       options: [
         { value: "", label: "Todos" },
         ...MARKETPLACE_STYLES.map(([value, label]) => ({ value, label })),
+        ...customStyleOptions,
       ],
       onSelect: setTag,
     },
