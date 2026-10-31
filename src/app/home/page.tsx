@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Bell, Search, Sun } from "lucide-react";
 import BottomNavigation from "@/components/closet/BottomNavigation";
 import HomeCarousel, { type HomeCarouselItem } from "@/components/home/HomeCarousel";
+import ClimaActual from "@/components/home/ClimaActual";
+import CarruselClima from "@/components/home/CarruselClima";
+import type { DatosClima } from "@/types/clima";
 import type { Prenda } from "@/types/prenda";
 
 type User = { nombre: string | null; email: string };
@@ -24,6 +27,7 @@ export default function HomePage() {
   const [unreadError, setUnreadError] = useState("");
   const [prendas, setPrendas] = useState<Prenda[]>([]);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [clima, setClima] = useState<DatosClima | null>(null);
   const [loadingCloset, setLoadingCloset] = useState(true);
   const [closetError, setClosetError] = useState("");
 
@@ -193,6 +197,16 @@ export default function HomePage() {
           <Sun size={42} color="#F9F5F0" />
         </div>
       </section>
+
+      <div className="relative z-10 mx-auto mb-7 grid w-full max-w-6xl grid-cols-1 gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+        <ClimaActual onWeatherChange={setClima} />
+        <CarruselClima
+          clima={clima}
+          prendas={prendas}
+          outfits={outfits}
+          cargandoPrendas={loadingCloset}
+        />
+      </div>
 
       <div className="relative z-10 mx-auto mb-7 grid w-full max-w-6xl grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch">
         <HomeCarousel
