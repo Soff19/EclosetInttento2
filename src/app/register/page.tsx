@@ -37,53 +37,63 @@ export default function RegisterPage() {
     }
   }
 
-  const field = (key: keyof typeof form, label: string, type = "text") => (
+  const field = (key: keyof typeof form, label: string, type = "text", autoComplete: string = key) => (
     <div>
-      <label className="block text-xs font-medium tracking-wider uppercase mb-2" style={{ color: "#6b6b60" }}>
+      <label htmlFor={`register-${key}`} className="auth-label">
         {label}
       </label>
       <input
+        id={`register-${key}`}
         type={type}
+        name={key}
+        autoComplete={autoComplete}
         required
         value={form[key]}
         onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-        className="w-full px-4 py-3.5 text-sm outline-none"
-        style={{ background: "#fff", border: "1px solid #e8e4de", borderRadius: "12px" }}
+        className="auth-input"
       />
     </div>
   );
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-10" style={{ background: "#F9F5F0" }}>
-      <div className="w-full max-w-md">
-        <BackLink href="/" label="Volver al inicio" />
-        <p className="text-xs tracking-[0.35em] uppercase mb-3" style={{ color: "#C9A96E" }}>
-          Join ECloset
-        </p>
-        <h1 className="text-[2rem] font-light mb-8" style={{ letterSpacing: "-0.02em" }}>
-          Create account
-        </h1>
+    <main className="auth-page flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 sm:py-12">
+      <div className="w-full max-w-lg">
+        <div className="mb-8 flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#0B493D] font-semibold text-[#0B493D]" aria-hidden="true">E</span>
+          <span className="text-sm font-bold uppercase tracking-[0.24em] text-[#0B493D]">ECloset</span>
+        </div>
+        <BackLink href="/" label="Volver al inicio" className="!text-[#0B493D] font-semibold" />
+        <header className="mb-7">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#0B493D]">
+            Crear cuenta
+          </p>
+          <h1 className="auth-editorial text-[2.75rem] leading-none sm:text-5xl">
+            Sumate a ECloset
+          </h1>
+          <p className="mt-3 text-base leading-6 text-[#55524C]">
+            Completá tus datos para crear tu cuenta.
+          </p>
+        </header>
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: "#fff0f0", color: "#cc4444" }}>
+          <div role="alert" className="auth-alert mb-5 px-4 py-3 text-sm">
             {error}
           </div>
         )}
-        <form onSubmit={onSubmit} className="space-y-4">
-          {field("nombre", "Nombre")}
-          {field("email", "Email", "email")}
-          {field("password", "Password", "password")}
-          {field("confirmPassword", "Confirmar password", "password")}
+        <form onSubmit={onSubmit} className="space-y-5">
+          {field("nombre", "Nombre", "text", "name")}
+          {field("email", "Correo electrónico", "email")}
+          {field("password", "Contraseña", "password", "new-password")}
+          {field("confirmPassword", "Confirmar contraseña", "password", "new-password")}
           <button
             disabled={loading}
-            className="w-full py-4 text-sm uppercase tracking-[0.15em]"
-            style={{ background: "#2C3E2D", color: "#F9F5F0", borderRadius: "12px" }}
+            className="auth-button-primary mt-2 w-full"
           >
-            {loading ? "Creando..." : "Create account"}
+            {loading ? "Creando cuenta..." : "Crear cuenta"}
           </button>
         </form>
-        <p className="text-center text-xs mt-6" style={{ color: "#b0b0a5" }}>
+        <p className="mt-7 text-center text-sm text-[#55524C]">
           ¿Ya tenés cuenta?{" "}
-          <Link href="/" style={{ color: "#2C3E2D" }}>
+          <Link href="/" className="font-bold text-[#0B493D] underline-offset-4 hover:underline">
             Iniciá sesión →
           </Link>
         </p>

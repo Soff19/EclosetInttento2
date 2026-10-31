@@ -4,16 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ShoppingBag, Shirt, Layers, User } from "lucide-react";
 
-const items = [
-  { href: "/home", label: "Home", Icon: Home },
-  { href: "/productos", label: "Market", Icon: ShoppingBag },
-  { href: "/closet", label: "Closet", Icon: Shirt, fab: true },
-  { href: "/outfits", label: "Outfits", Icon: Layers },
-  { href: "/perfil", label: "Perfil", Icon: User },
-];
-
 export default function BottomNavigation() {
   const pathname = usePathname();
+
+  const items = [
+    { href: "/home", label: "Home", Icon: Home },
+    { href: "/productos", label: "Market", Icon: ShoppingBag },
+    { href: "/closet", label: "Closet", Icon: Shirt, fab: true },
+    { href: "/outfits", label: "Outfits", Icon: Layers },
+    { href: "/perfil", label: "Perfil", Icon: User },
+  ];
+
   return (
     <nav
       className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-md rounded-[28px] px-4 py-4 flex justify-between items-center z-50"
@@ -45,8 +46,8 @@ export default function BottomNavigation() {
           );
         }
         return (
-          <Link key={href} href={href} className="flex flex-col items-center gap-1 min-w-[48px]">
-            <Icon size={21} color={active ? "#2C3E2D" : "#9a9a8e"} />
+          <Link key={href} href={href} className="flex flex-col items-center gap-1 min-w-[40px]">
+            <Icon size={20} color={active ? "#2C3E2D" : "#9a9a8e"} />
             <span
               className="text-[9px] uppercase tracking-[0.14em]"
               style={{ color: active ? "#2C3E2D" : "#9a9a8e" }}

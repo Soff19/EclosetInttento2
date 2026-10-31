@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractToken, updateUserProfile, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser, updateUserProfile } from "@/lib/auth";
 
 export async function PUT(request: NextRequest) {
   try {
-    const token = extractToken(request);
-    if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    const decoded = verifyToken(token);
-    if (!decoded?.id) return NextResponse.json({ error: "Token inválido" }, { status: 401 });
+    const decoded = await getAuthenticatedUser(request);
+    if (!decoded) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await request.json();
     const user = await updateUserProfile(decoded.id, {

@@ -12,6 +12,8 @@ model Usuario {
   email         String     @unique
   nombre        String?
   password      String
+  rol           String     @default("USUARIA")
+  estado        String     @default("ACTIVA")
   perfilCompletado Boolean  @default(false)
   preferencias   Json?
   fechaCreacion DateTime   @default(now())
@@ -22,10 +24,16 @@ model Usuario {
   favoritos     FavoritoProducto[]
   compras       Compra[]
   resenas       ResenaProducto[]
+  notificacionesRecibidas Notificacion[] @relation("NotificacionDestinatario")
+  notificacionesEnviadas Notificacion[] @relation("NotificacionActor")
+  eventosCalendario EventoCalendario[]
+  resenasVendedorRecibidas ResenaVendedor[] @relation("ResenaVendedorDestinatario")
+  resenasVendedorEnviadas ResenaVendedor[] @relation("ResenaVendedorAutor")
 }
 
 model Prenda {
   id            String         @id @default(uuid())
+  fechaCreacion DateTime?
   urlImagen     String         @db.VarChar(500)
   categoria     String
   color         String?
@@ -38,18 +46,22 @@ model Prenda {
   usuario       Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId])
+  @@index([fechaCreacion])
 }
 
 model Outfit {
   id            String         @id @default(uuid())
+  fechaCreacion DateTime?
   nombre        String
   usuarioId     String
   categoria     String?
   descripcion   String?        @db.Text
   usuario       Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   outfitPrendas OutfitPrenda[]
+  eventosCalendario EventoCalendario[]
 
   @@index([usuarioId])
+  @@index([fechaCreacion])
 }
 
 model OutfitPrenda {
@@ -75,12 +87,18 @@ model Producto {
   contacto    String?            @db.VarChar(500)
   usuarioId   String
   fechaInicio DateTime           @default(now())
+  motivoEliminacion String?      @db.VarChar(191)
+  explicacionEliminacion String? @db.Text
+  fechaEliminacion DateTime?
   usuario     Usuario            @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   favoritos   FavoritoProducto[]
   compras     Compra[]
   resenas     ResenaProducto[]
+  notificaciones Notificacion[]
 
   @@index([usuarioId])
+  @@index([fechaInicio])
+  @@index([fechaEliminacion])
 }
 
 model FavoritoProducto {
@@ -101,11 +119,34 @@ model Compra {
   productoId String
   estado     String   @default("PENDIENTE")
   creadoEn   DateTime @default(now())
+  fechaConcretada DateTime?
   comprador  Usuario  @relation(fields: [compradorId], references: [id], onDelete: Cascade)
   producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  resenaVendedor ResenaVendedor?
 
   @@unique([compradorId, productoId])
   @@index([productoId])
+  @@index([compradorId, estado])
+  @@index([fechaConcretada])
+}
+
+model Notificacion {
+  id             String    @id @default(uuid())
+  destinatarioId String
+  actorId        String?
+  productoId     String?
+  tipo           String
+  mensaje        String    @db.VarChar(255)
+  leidaEn        DateTime?
+  creadoEn       DateTime  @default(now())
+  destinatario   Usuario   @relation("NotificacionDestinatario", fields: [destinatarioId], references: [id], onDelete: Cascade)
+  actor          Usuario?  @relation("NotificacionActor", fields: [actorId], references: [id], onDelete: SetNull)
+  producto       Producto? @relation(fields: [productoId], references: [id], onDelete: SetNull)
+
+  @@index([destinatarioId, creadoEn])
+  @@index([destinatarioId, leidaEn])
+  @@index([productoId])
+  @@unique([destinatarioId, actorId, productoId, tipo])
 }
 
 model ResenaProducto {
@@ -120,4 +161,37 @@ model ResenaProducto {
 
   @@unique([usuarioId, productoId])
   @@index([productoId])
+}
+
+model ResenaVendedor {
+  id          String   @id @default(uuid())
+  compraId    String   @unique
+  compradorId String
+  vendedorId  String
+  puntuacion  Int
+  comentario String?  @db.Text
+  creadoEn    DateTime @default(now())
+  compra      Compra  @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  comprador   Usuario @relation("ResenaVendedorAutor", fields: [compradorId], references: [id], onDelete: Cascade)
+  vendedor    Usuario @relation("ResenaVendedorDestinatario", fields: [vendedorId], references: [id], onDelete: Cascade)
+
+  @@index([vendedorId, creadoEn])
+  @@index([compradorId])
+}
+
+model EventoCalendario {
+  id        String   @id @default(uuid())
+  usuarioId String
+  fecha     DateTime
+  tipo      String   // "evento" | "outfit" | "foto"
+  titulo    String?
+  outfitId  String?
+  urlImagen String?  @db.VarChar(500)
+  creadoEn  DateTime @default(now())
+
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  outfit    Outfit?  @relation(fields: [outfitId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
+  @@index([fecha])
 }

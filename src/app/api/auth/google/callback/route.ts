@@ -37,6 +37,9 @@ export async function GET(request: NextRequest) {
         data: { fotoPerfil: data.picture, nombre: user.nombre || data.name || user.nombre },
       });
     }
+    if (user.estado !== "ACTIVA") {
+      return NextResponse.redirect(`${base}/?error=account_suspended`);
+    }
 
     const token = generateToken({
       id: user.id,
@@ -45,7 +48,7 @@ export async function GET(request: NextRequest) {
       fotoPerfil: user.fotoPerfil,
     });
 
-    const response = NextResponse.redirect(`${base}/home`);
+    const response = NextResponse.redirect(user.rol === "ADMIN" ? `${base}/admin` : `${base}/home`);
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+#base de datos
+createAdmins.ts
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

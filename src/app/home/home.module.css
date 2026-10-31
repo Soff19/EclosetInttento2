@@ -1,0 +1,38 @@
+.bannerActionLinks {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.bannerActionLink {
+  display: flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(11 73 61 / 30%);
+  border-radius: 0.75rem;
+  background: rgb(247 241 231 / 90%);
+  color: #0b493d;
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.bannerActionLink:hover {
+  transform: translateY(-1px);
+  border-color: #0b493d;
+  background: #fff;
+}
+
+.bannerActionLink:active {
+  transform: scale(0.98);
+}
+
+.bannerActionLink:focus-visible {
+  outline: 3px solid #0b493d;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bannerActionLink {
+    transition-duration: 0.01ms;
+  }
+}

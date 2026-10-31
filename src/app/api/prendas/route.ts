@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
-import { getImageKit } from "@/lib/imagekit";
+import { extractToken, getAuthenticatedUser } from "@/lib/auth";
+import { getBackgroundRemovedUrl, getImageKit } from "@/lib/imagekit";
 
 async function requireUser(request: NextRequest) {
   const token = extractToken(request);
   if (!token) return null;
-  return verifyToken(token);
+  return getAuthenticatedUser(request);
 }
 
 function parseEtiquetas(raw: FormDataEntryValue | null): string | null {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         folder: "/ecloset/prendas",
         useUniqueFileName: true,
       });
-      urlImagen = upload.url;
+      urlImagen = getBackgroundRemovedUrl(upload.url);
     }
     if (!urlImagen) {
       return NextResponse.json({ error: "urlImagen o imagen es obligatorio" }, { status: 400 });
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
 
     const prenda = await prisma.prenda.create({
       data: {
+        fechaCreacion: new Date(),
         categoria,
         nombre,
         color,
