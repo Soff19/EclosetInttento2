@@ -7,7 +7,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   try {
     const token = extractToken(request);
     const currentUser = token ? verifyToken(token) : null;
-    const [seller, reviews, aggregate, reviewablePurchases] = await Promise.all([
+    const [seller, reviews, aggregate, completedSalesCount, reviewablePurchases] = await Promise.all([
       prisma.usuario.findUnique({
         where: { id: sellerId },
         select: { id: true, nombre: true, fotoPerfil: true, fechaCreacion: true },
@@ -29,6 +29,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         _avg: { puntuacion: true },
         _count: { _all: true },
       }),
+      prisma.compra.count({
+        where: {
+          estado: "CONCRETADA",
+          producto: { usuarioId: sellerId },
+        },
+      }),
       currentUser && currentUser.id !== sellerId
         ? prisma.compra.findMany({
             where: {
@@ -48,6 +54,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       seller,
       average: aggregate._avg.puntuacion,
       reviewCount: aggregate._count._all,
+      completedSalesCount,
       reviews,
       reviewablePurchases,
     });

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, Check, CheckCheck, ExternalLink, LoaderCircle, Star, X } from "lucide-react";
 import { getContactHref } from "@/lib/contact";
+import SellerProfileDialog from "@/components/notifications/SellerProfileDialog";
 
 type Notification = {
   id: string;
@@ -50,7 +51,9 @@ export default function NotificationsPanel({ onClose }: NotificationsPanelProps)
   const router = useRouter();
   const panelRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const sellerProfileTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [items, setItems] = useState<Notification[]>([]);
+  const [sellerProfileId, setSellerProfileId] = useState<string | null>(null);
   const [noLeidas, setNoLeidas] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -61,6 +64,11 @@ export default function NotificationsPanel({ onClose }: NotificationsPanelProps)
   const [processingCompraId, setProcessingCompraId] = useState<string | null>(null);
   const [processingAction, setProcessingAction] = useState<"ACEPTADA" | "DENEGADA" | "CONCRETADA" | null>(null);
   const [actionMessage, setActionMessage] = useState("");
+
+  const closeSellerProfile = useCallback(() => {
+    setSellerProfileId(null);
+    requestAnimationFrame(() => sellerProfileTriggerRef.current?.focus());
+  }, []);
 
   const load = useCallback(async (nextPage = 1, append = false, preserveItems = false) => {
     if (!preserveItems) setLoading(true);
@@ -400,9 +408,17 @@ export default function NotificationsPanel({ onClose }: NotificationsPanelProps)
                           Contactar al vendedor <ExternalLink size={13} />
                         </a>
                       )}
-                      <Link href={`/perfil/${item.actor.id}`} className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-[#0B493D] underline underline-offset-2 hover:bg-[#C6EFD6]/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B493D]">
+                      <button
+                        ref={sellerProfileTriggerRef}
+                        type="button"
+                        onClick={(event) => {
+                          sellerProfileTriggerRef.current = event.currentTarget;
+                          setSellerProfileId(item.actor?.id ?? null);
+                        }}
+                        className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-[#0B493D] underline underline-offset-2 hover:bg-[#C6EFD6]/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B493D]"
+                      >
                         Ver perfil del vendedor <Star size={13} />
-                      </Link>
+                      </button>
                     </div>
                     {item.compra?.estado === "ACEPTADA" && (
                       <button
@@ -449,6 +465,9 @@ export default function NotificationsPanel({ onClose }: NotificationsPanelProps)
         )}
         </div>
       </section>
+      {sellerProfileId && (
+        <SellerProfileDialog sellerId={sellerProfileId} onClose={closeSellerProfile} />
+      )}
     </>
   );
 }
