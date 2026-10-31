@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronLeft, Upload, X } from "lucide-react";
 import styles from "../../app/fashion-sections.module.css";
 
@@ -21,17 +21,27 @@ export default function AddPhotoForm({
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
+    if (!selectedFile) return;
+    if (!selectedFile.type.startsWith("image/") || selectedFile.size > 5 * 1024 * 1024) {
+      setFile(null);
+      setPreview("");
+      setError("Elegí una imagen válida de hasta 5MB.");
+      e.target.value = "";
+      return;
     }
+
+    setFile(selectedFile);
+    setError("");
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (typeof event.target?.result === "string") setPreview(event.target.result);
+    };
+    reader.onerror = () => setError("No se pudo leer la imagen seleccionada.");
+    reader.readAsDataURL(selectedFile);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,11 +55,11 @@ export default function AddPhotoForm({
       setLoading(true);
       setError("");
 
-      // Subir imagen a ImageKit
+      // Reuse the image upload route; the photo is stored as a calendar event, not a closet garment.
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("image", file);
       formData.append("fileName", `calendario-${Date.now()}-${file.name}`);
-      formData.append("folder", "/calendario");
+      formData.append("folder", "productos");
 
       const uploadResponse = await fetch("/api/imagenes", {
         method: "POST",
@@ -57,11 +67,11 @@ export default function AddPhotoForm({
         credentials: "include",
       });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Error subiendo imagen");
-      }
-
       const uploadedData = await uploadResponse.json();
+      if (!uploadResponse.ok) throw new Error(uploadedData.error || "Error subiendo imagen");
+      if (typeof uploadedData.url !== "string" || !uploadedData.url) {
+        throw new Error("El servidor no devolvió la URL de la imagen.");
+      }
       const imageUrl = uploadedData.url;
 
       // Crear evento con la foto
@@ -116,6 +126,8 @@ export default function AddPhotoForm({
               onClick={() => {
                 setFile(null);
                 setPreview("");
+                setError("");
+                if (fileInputRef.current) fileInputRef.current.value = "";
               }}
               aria-label="Quitar imagen"
               className={`${styles.iconButton} absolute right-2 top-2 h-10 w-10 rounded-full p-0`}
@@ -134,6 +146,7 @@ export default function AddPhotoForm({
               </span>
             </div>
             <input
+              ref={fileInputRef}
               type="file"
               aria-label="Seleccionar foto de outfit"
               accept="image/*"

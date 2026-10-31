@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import BackLink from "@/components/BackLink";
 import CalendarGrid from "@/components/calendario/CalendarGrid";
 import CalendarFABModal from "@/components/calendario/CalendarFABModal";
+import CalendarDayDetailsModal from "@/components/calendario/CalendarDayDetailsModal";
 import styles from "../fashion-sections.module.css";
 
 interface Evento {
@@ -14,16 +15,26 @@ interface Evento {
   titulo?: string;
   outfitId?: string;
   urlImagen?: string;
-  outfit?: { id: string; nombre: string };
+  outfit?: { id: string; nombre: string; outfitPrendas?: { prenda: { urlImagen: string } }[] };
+}
+
+interface Outfit {
+  id: string;
+  outfitPrendas: { prenda: { urlImagen: string } }[];
 }
 
 export default function CalendarioPage() {
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [outfitImages, setOutfitImages] = useState<Record<string, string[]>>({});
+  const [outfitLoadError, setOutfitLoadError] = useState("");
+  const [calendarLoadError, setCalendarLoadError] = useState("");
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [anio, setAnio] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [viewingDate, setViewingDate] = useState<Date | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   // Cargar eventos del mes
   useEffect(() => {
@@ -32,13 +43,36 @@ export default function CalendarioPage() {
         setLoading(true);
         const token = localStorage.getItem("token");
         const response = await fetch(`/api/calendario/mes?mes=${mes}&anio=${anio}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: token ? { Authorization: "Bearer " + token } : undefined,
           credentials: "include",
         });
         if (response.ok) {
           const data = await response.json();
           setEventos(data.eventos);
+          setCalendarLoadError("");
+        } else {
+          setCalendarLoadError("No se pudieron cargar los eventos del calendario.");
         }
+        try {
+          const outfitsResponse = await fetch("/api/outfits", {
+            headers: token ? { Authorization: "Bearer " + token } : undefined,
+            credentials: "include",
+          });
+          if (!outfitsResponse.ok) throw new Error("No se pudieron cargar los outfits.");
+          const data = await outfitsResponse.json();
+          const outfits: Outfit[] = data.outfits || [];
+          setOutfitImages(Object.fromEntries(
+            outfits.map((outfit) => [
+              outfit.id,
+              outfit.outfitPrendas.map(({ prenda }) => prenda.urlImagen).filter(Boolean),
+            ]),
+          ));
+          setOutfitLoadError("");
+        } catch {
+          setOutfitLoadError("No se pudieron cargar las imágenes de tus outfits.");
+        }
+      } catch {
+        setCalendarLoadError("No se pudieron cargar los eventos del calendario.");
       } finally {
         setLoading(false);
       }
@@ -65,9 +99,16 @@ export default function CalendarioPage() {
 
   const handleDayClick = (date: Date) => {
     setSelectedDate(date);
+    setViewingDate(date);
+    setActionError("");
   };
 
   const handleFABClick = () => {
+    if (!selectedDate) {
+      setActionError("Seleccioná un día del calendario antes de agregar algo.");
+      return;
+    }
+    setActionError("");
     setShowModal(true);
   };
 
@@ -75,7 +116,7 @@ export default function CalendarioPage() {
     // Recargar eventos
     const token = localStorage.getItem("token");
     const response = await fetch(`/api/calendario/mes?mes=${mes}&anio=${anio}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      headers: token ? { Authorization: "Bearer " + token } : undefined,
       credentials: "include",
     });
     if (response.ok) {
@@ -131,18 +172,69 @@ export default function CalendarioPage() {
           </button>
         </div>
 
+        {outfitLoadError && (
+          <p role="status" className={`${styles.error} mb-4`}>
+            {outfitLoadError}
+          </p>
+        )}
+        {calendarLoadError && (
+          <p role="alert" className={`${styles.error} mb-4`}>
+            {calendarLoadError}
+          </p>
+        )}
+
         {loading ? (
           <p className="py-6 text-center text-sm text-[#55524C]" role="status">Cargando calendario...</p>
         ) : (
           <CalendarGrid
             mes={mes}
             anio={anio}
-            eventos={eventos}
+            eventos={eventos.map((evento) => ({
+              ...evento,
+              outfit: evento.outfit
+                ? {
+                    ...evento.outfit,
+                    outfitPrendas: (outfitImages[evento.outfit.id] || []).map((urlImagen) => ({
+                      prenda: { urlImagen },
+                    })),
+                  }
+                : evento.outfit,
+            }))}
             onDayClick={handleDayClick}
             selectedDate={selectedDate}
           />
         )}
       </section>
+      {actionError && (
+        <p role="status" className={`${styles.error} mt-3`}>
+          {actionError}
+        </p>
+      )}
+
+      {viewingDate && (
+        <CalendarDayDetailsModal
+          fecha={viewingDate}
+          eventos={eventos
+            .filter((evento) => {
+              const eventDate = new Date(evento.fecha);
+              return eventDate.getDate() === viewingDate.getDate()
+                && eventDate.getMonth() === viewingDate.getMonth()
+                && eventDate.getFullYear() === viewingDate.getFullYear();
+            })
+            .map((evento) => ({
+              ...evento,
+              outfit: evento.outfit
+                ? {
+                    ...evento.outfit,
+                    outfitPrendas: (outfitImages[evento.outfit.id] || []).map((urlImagen) => ({
+                      prenda: { urlImagen },
+                    })),
+                  }
+                : evento.outfit,
+            }))}
+          onClose={() => setViewingDate(null)}
+        />
+      )}
 
       <button
         onClick={handleFABClick}
@@ -153,14 +245,11 @@ export default function CalendarioPage() {
         <Plus size={24} />
       </button>
 
-      {showModal && (
+      {showModal && selectedDate && (
         <CalendarFABModal
           selectedDate={selectedDate}
           onClose={() => setShowModal(false)}
           onEventoCreated={handleEventoCreated}
-          mes={mes}
-          anio={anio}
-          onDateSelected={setSelectedDate}
         />
       )}
       </div>

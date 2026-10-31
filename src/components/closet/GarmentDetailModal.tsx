@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Trash2, X } from "lucide-react";
 import type { Prenda } from "@/types/prenda";
 import styles from "@/app/fashion-sections.module.css";
 
 interface GarmentDetailModalProps {
   prenda: Prenda;
   onClose: () => void;
+  onDeleted: (prendaId: string) => void;
 }
 
 function parseTags(raw?: string | null): string[] {
@@ -20,8 +21,11 @@ function parseTags(raw?: string | null): string[] {
   }
 }
 
-export default function GarmentDetailModal({ prenda, onClose }: GarmentDetailModalProps) {
+export default function GarmentDetailModal({ prenda, onClose, onDeleted }: GarmentDetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -64,6 +68,26 @@ export default function GarmentDetailModal({ prenda, onClose }: GarmentDetailMod
 
   const tags = parseTags(prenda.etiquetas);
   const title = prenda.nombre || prenda.categoria;
+
+  async function deleteGarment() {
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/prendas/${encodeURIComponent(prenda.id)}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: "Bearer " + token } : undefined,
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No se pudo eliminar la prenda.");
+      onDeleted(prenda.id);
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "No se pudo eliminar la prenda.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div
@@ -120,6 +144,43 @@ export default function GarmentDetailModal({ prenda, onClose }: GarmentDetailMod
                   {tags.map((tag) => <span className={styles.tag} key={tag}>#{tag}</span>)}
                 </div>
               </div>
+            )}
+            {deleteError && (
+              <p role="alert" className={`${styles.error} mt-4`}>{deleteError}</p>
+            )}
+            {confirmDelete ? (
+              <div className="mt-5 rounded-xl border border-[#E5E1D9] bg-white p-4">
+                <p className="text-sm font-semibold text-[#333333]">¿Eliminar esta prenda de tu closet?</p>
+                <p className="mt-1 text-xs text-[#55524C]">Esta acción no se puede deshacer.</p>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => setConfirmDelete(false)}
+                    className={`${styles.secondaryButton} flex-1`}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => void deleteGarment()}
+                    className={`${styles.primaryButton} flex-1`}
+                    style={{ borderColor: "#B85555", background: "#B85555", color: "#fff" }}
+                  >
+                    {deleting ? "Eliminando..." : "Sí, eliminar"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className={`${styles.secondaryButton} mt-5 w-full`}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                Eliminar prenda
+              </button>
             )}
           </div>
         </div>

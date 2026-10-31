@@ -9,7 +9,11 @@ interface Evento {
   titulo?: string;
   outfitId?: string;
   urlImagen?: string;
-  outfit?: { id: string; nombre: string };
+  outfit?: {
+    id: string;
+    nombre: string;
+    outfitPrendas?: { prenda: { urlImagen: string } }[];
+  };
 }
 
 interface CalendarGridProps {
@@ -106,26 +110,71 @@ export default function CalendarGrid({
               {eventosDelDia.length > 0 && (
                 <>
                   <span className={styles.mobileEventMarks} aria-hidden="true">
-                    {eventosDelDia.slice(0, 3).map((evento) => (
-                      <span key={evento.id} className={styles.eventDot} style={{ backgroundColor: eventColor(evento.tipo) }} />
-                    ))}
+                    {eventosDelDia.slice(0, 3).map((evento) => {
+                      const previewImages = evento.outfit?.outfitPrendas?.slice(0, 2) || [];
+                      if (evento.tipo === "foto" && evento.urlImagen) {
+                        return (
+                          <span key={evento.id} className={styles.calendarPhotoMark}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={evento.urlImagen} alt="" />
+                          </span>
+                        );
+                      }
+                      return evento.tipo === "outfit" && previewImages.length > 0 ? (
+                        <span key={evento.id} className={styles.calendarOutfitMark}>
+                          {previewImages.map(({ prenda }, imageIndex) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img key={`${evento.id}-${imageIndex}`} src={prenda.urlImagen} alt="" />
+                          ))}
+                        </span>
+                      ) : (
+                        <span key={evento.id} className={styles.eventDot} style={{ backgroundColor: eventColor(evento.tipo) }} />
+                      );
+                    })}
                     {eventosDelDia.length > 3 && (
                       <span className="text-[9px] font-bold text-[#333333]">+{eventosDelDia.length - 3}</span>
                     )}
                   </span>
                   <span className={styles.desktopEventList} aria-hidden="true">
-                    {eventosDelDia.slice(0, 2).map((evento) => (
-                      <span
-                        key={evento.id}
-                        className="w-full truncate rounded px-1 py-0.5 text-left text-[10px] leading-4"
-                        style={{
-                          backgroundColor: evento.tipo === "outfit" ? eventColor(evento.tipo) : evento.tipo === "evento" ? "#C6EFD6" : "#D4C5F9",
-                          color: evento.tipo === "outfit" ? "#FFFFFF" : "#0B493D",
-                        }}
-                      >
-                        {eventLabel(evento)}
-                      </span>
-                    ))}
+                    {eventosDelDia.slice(0, 2).map((evento) => {
+                      const previewImages = evento.outfit?.outfitPrendas?.slice(0, 4) || [];
+                      if (evento.tipo === "foto" && evento.urlImagen) {
+                        return (
+                          <span
+                            key={evento.id}
+                            className={styles.calendarPhotoPreview}
+                            title="Foto agendada"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={evento.urlImagen} alt="" />
+                          </span>
+                        );
+                      }
+                      return evento.tipo === "outfit" && previewImages.length > 0 ? (
+                        <span
+                          key={evento.id}
+                          className={styles.calendarOutfitPreview}
+                          aria-label="Outfit agendado"
+                          title="Outfit agendado"
+                        >
+                          {previewImages.map(({ prenda }, imageIndex) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img key={`${evento.id}-${imageIndex}`} src={prenda.urlImagen} alt="" />
+                          ))}
+                        </span>
+                      ) : (
+                        <span
+                          key={evento.id}
+                          className="w-full truncate rounded px-1 py-0.5 text-left text-[10px] leading-4"
+                          style={{
+                            backgroundColor: evento.tipo === "outfit" ? eventColor(evento.tipo) : evento.tipo === "evento" ? "#C6EFD6" : "#D4C5F9",
+                            color: evento.tipo === "outfit" ? "#FFFFFF" : "#0B493D",
+                          }}
+                        >
+                          {evento.tipo === "outfit" ? "Outfit" : eventLabel(evento)}
+                        </span>
+                      );
+                    })}
                     {eventosDelDia.length > 2 && (
                       <span className="text-[10px] font-semibold text-[#55524C]">+{eventosDelDia.length - 2} más</span>
                     )}

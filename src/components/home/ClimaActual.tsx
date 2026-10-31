@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Cloud, CloudFog, CloudLightning, CloudRain, Snowflake, Sun } from "lucide-react";
 import type { DatosClima } from "@/types/clima";
 
 type Props = {
@@ -18,12 +19,12 @@ const COORDENADAS_BUENOS_AIRES: Coordenadas = {
 };
 
 const iconosCondicion = {
-  soleado: "☀️",
-  nublado: "☁️",
-  lluvia: "🌧️",
-  tormenta: "⛈️",
-  nieve: "❄️",
-  niebla: "🌫️",
+  soleado: Sun,
+  nublado: Cloud,
+  lluvia: CloudRain,
+  tormenta: CloudLightning,
+  nieve: Snowflake,
+  niebla: CloudFog,
 } as const;
 
 export default function ClimaActual({ onWeatherChange }: Props) {
@@ -130,27 +131,28 @@ export default function ClimaActual({ onWeatherChange }: Props) {
     void cargarClima();
   }
 
+  const IconoCondicion = clima ? iconosCondicion[clima.condicion] : null;
+
   return (
     <section
       aria-labelledby="clima-actual-titulo"
-      className="rounded-[24px] p-5 sm:p-6"
+      className="h-full w-full rounded-2xl border border-[#E5E1D9] bg-white p-3 sm:p-4"
       style={{
-        background: "rgba(255,255,255,0.84)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.07)",
+        boxShadow: "0 4px 18px rgba(11,73,61,0.04)",
       }}
     >
-      <p className="uppercase text-[10px] tracking-[0.18em]" style={{ color: "#6b6b60" }}>
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b6b60]">
         Tu día, al aire libre
       </p>
-      <h2 id="clima-actual-titulo" className="mt-1 text-xl font-light" style={{ color: "#2C3E2D" }}>
+      <h2 id="clima-actual-titulo" className="mt-1 font-[family-name:var(--font-cormorant-garamond)] text-xl leading-tight text-[#0B493D]">
         Clima actual
       </h2>
 
       {cargando ? (
         <div className="mt-4 animate-pulse space-y-3" aria-label="Cargando el clima">
-          <div className="h-8 w-2/3 rounded-lg bg-[#A8C5A0]/30" />
-          <div className="h-16 rounded-xl bg-[#A8C5A0]/20" />
-          <div className="h-4 w-1/2 rounded bg-[#A8C5A0]/20" />
+          <div className="h-8 w-2/3 rounded-lg bg-[#C6EFD6]" />
+          <div className="h-16 rounded-xl bg-[#C6EFD6]/70" />
+          <div className="h-4 w-1/2 rounded bg-[#C6EFD6]/70" />
         </div>
       ) : error ? (
         <div className="mt-4" role="alert">
@@ -158,8 +160,7 @@ export default function ClimaActual({ onWeatherChange }: Props) {
           <button
             type="button"
             onClick={reintentar}
-            className="mt-4 min-h-11 rounded-xl px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
-            style={{ background: "#2C3E2D", color: "#F9F5F0" }}
+            className="mt-4 min-h-11 rounded-xl border border-[#A8BC99] bg-[#A8BC99] px-4 text-sm font-bold text-[#0B493D] transition hover:border-[#93AA84] hover:bg-[#93AA84] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B493D] active:scale-[0.98]"
           >
             Reintentar
           </button>
@@ -167,54 +168,52 @@ export default function ClimaActual({ onWeatherChange }: Props) {
       ) : clima ? (
         <>
           {avisoUbicacion && (
-            <p className="mt-3 rounded-xl px-3 py-2 text-xs leading-5" role="status" style={{ background: "#f4ede2", color: "#5c4a2d" }}>
+            <p className="mt-3 rounded-lg border border-[#E5E1D9] bg-[#F7F1E7] px-3 py-2 text-sm leading-5 text-[#55524C]" role="status">
               {avisoUbicacion}
             </p>
           )}
-          <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="mt-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium" style={{ color: "#2C3E2D" }}>
+              <p className="truncate text-sm font-bold text-[#0B493D]">
                 {clima.ciudad}
               </p>
-              <p className="mt-1 text-sm capitalize" style={{ color: "#6b6b60" }}>
+              <p className="mt-1 text-xs capitalize text-[#6b6b60]">
                 {clima.descripcion}
               </p>
             </div>
-            <span className="shrink-0 text-4xl" aria-hidden="true">
-              {iconosCondicion[clima.condicion]}
-            </span>
+            {IconoCondicion && <IconoCondicion className="h-8 w-8 shrink-0 text-[#6CAF7B]" aria-hidden="true" />}
           </div>
-          <p className="mt-2 text-4xl font-light tabular-nums" style={{ color: "#2C3E2D" }}>
+          <p className="mt-2 font-[family-name:var(--font-cormorant-garamond)] text-3xl leading-none tabular-nums text-[#0B493D]">
             {clima.temperatura} °C
           </p>
-          <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
-            <div className="rounded-xl p-3" style={{ background: "#F9F5F0" }}>
-              <dt style={{ color: "#6b6b60" }}>Sensación térmica</dt>
-              <dd className="mt-1 font-medium" style={{ color: "#2C3E2D" }}>{clima.sensacionTermica} °C</dd>
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-xs xl:grid-cols-4">
+            <div className="rounded-lg border border-[#E5E1D9] bg-[#F7F1E7] p-2.5">
+              <dt className="text-[#6b6b60]">Sensación térmica</dt>
+              <dd className="mt-1 font-bold text-[#0B493D]">{clima.sensacionTermica} °C</dd>
             </div>
-            <div className="rounded-xl p-3" style={{ background: "#F9F5F0" }}>
-              <dt style={{ color: "#6b6b60" }}>Probabilidad de lluvia</dt>
-              <dd className="mt-1 font-medium" style={{ color: "#2C3E2D" }}>{clima.probabilidadLluvia}%</dd>
+            <div className="rounded-lg border border-[#E5E1D9] bg-[#F7F1E7] p-2.5">
+              <dt className="text-[#6b6b60]">Probabilidad de lluvia</dt>
+              <dd className="mt-1 font-bold text-[#0B493D]">{clima.probabilidadLluvia}%</dd>
             </div>
-            <div className="rounded-xl p-3" style={{ background: "#F9F5F0" }}>
-              <dt style={{ color: "#6b6b60" }}>Viento</dt>
-              <dd className="mt-1 font-medium" style={{ color: "#2C3E2D" }}>{clima.vientoKmh} km/h</dd>
+            <div className="rounded-lg border border-[#E5E1D9] bg-[#F7F1E7] p-2.5">
+              <dt className="text-[#6b6b60]">Viento</dt>
+              <dd className="mt-1 font-bold text-[#0B493D]">{clima.vientoKmh} km/h</dd>
             </div>
-            <div className="rounded-xl p-3" style={{ background: "#F9F5F0" }}>
-              <dt style={{ color: "#6b6b60" }}>Humedad</dt>
-              <dd className="mt-1 font-medium" style={{ color: "#2C3E2D" }}>{clima.humedad}%</dd>
+            <div className="rounded-lg border border-[#E5E1D9] bg-[#F7F1E7] p-2.5">
+              <dt className="text-[#6b6b60]">Humedad</dt>
+              <dd className="mt-1 font-bold text-[#0B493D]">{clima.humedad}%</dd>
             </div>
           </dl>
         </>
       ) : null}
 
-      <p className="mt-4 text-[10px]" style={{ color: "#77766d" }}>
+      <p className="mt-3 text-[11px] text-[#6b6b60]">
         Datos:{" "}
         <a
           href="https://openweathermap.org/"
           target="_blank"
           rel="noreferrer"
-          className="underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
+          className="underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B493D]"
         >
           OpenWeatherMap
         </a>

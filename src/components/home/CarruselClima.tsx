@@ -140,8 +140,8 @@ export default function CarruselClima({
   return (
     <section
       aria-label="Recomendaciones de outfit según el clima"
-      className="flex min-w-0 flex-col rounded-[24px] p-4 sm:p-5"
-      style={{ background: "rgba(255,255,255,0.82)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}
+      className="flex h-full w-full min-w-0 flex-col rounded-2xl border border-[#E5E1D9] bg-white p-3 sm:p-4"
+      style={{ boxShadow: "0 4px 18px rgba(11,73,61,0.04)" }}
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
       onFocus={() => setPausado(true)}
@@ -152,30 +152,30 @@ export default function CarruselClima({
       }}
       onKeyDown={manejarTeclado}
     >
-      <div className="mb-4">
-        <p className="uppercase text-[10px] tracking-[0.18em]" style={{ color: "#6b6b60" }}>
+      <div className="mb-3">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b6b60]">
           Ideas de tu closet
         </p>
-        <h2 className="mt-1 text-xl font-light" style={{ color: "#2C3E2D" }}>
+        <h2 className="mt-1 font-[family-name:var(--font-cormorant-garamond)] text-xl leading-tight text-[#0B493D]">
           {tituloClima}
         </h2>
       </div>
 
       {cargandoPrendas || !clima ? (
-        <p className="py-8 text-center text-sm" role="status" style={{ color: "#6b6b60" }}>
+        <p className="py-5 text-center text-xs leading-5 text-[#55524C]" role="status">
           {cargandoPrendas ? "Buscando prendas y outfits para vos..." : "Las recomendaciones aparecerán cuando cargue el clima."}
         </p>
       ) : recomendacionActual ? (
         <>
-          <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 items-center justify-center">
             {recomendacionActual.tipo === "prenda" ? (
               <article
-                className="mx-auto max-w-sm overflow-hidden rounded-[22px]"
-                style={{ background: "rgba(255,255,255,0.9)", boxShadow: "0 8px 24px rgba(0,0,0,0.06)" }}
+                className="mx-auto w-full max-w-[11rem] overflow-hidden rounded-xl border border-[#E5E1D9] bg-white md:flex md:max-w-none"
+                style={{ boxShadow: "0 4px 16px rgba(11,73,61,0.05)" }}
               >
                 <div
-                  className="flex aspect-[4/5] max-h-[320px] items-center justify-center overflow-hidden"
-                  style={{ background: "linear-gradient(135deg,#eaf4eb,#f4ede2)" }}
+                  className="flex aspect-[4/5] max-h-[220px] items-center justify-center overflow-hidden md:aspect-auto md:min-h-[9rem] md:w-32 md:shrink-0"
+                  style={{ background: "#F7F1E7" }}
                 >
                   {recomendacionActual.prenda.urlImagen ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -185,17 +185,17 @@ export default function CarruselClima({
                       className="h-full w-full object-contain p-4"
                     />
                   ) : (
-                    <span className="text-5xl" aria-hidden="true">👗</span>
+                    <Shirt size={40} className="text-[#6CAF7B]" aria-hidden="true" />
                   )}
                 </div>
-                <div className="p-4">
-                  <h3 className="truncate text-base font-light" style={{ color: "#1a1a1a" }}>
+                <div className="p-3 md:flex md:min-w-0 md:flex-1 md:flex-col md:justify-center">
+                  <h3 className="truncate text-base font-semibold text-[#333333]">
                     {recomendacionActual.titulo}
                   </h3>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.15em]" style={{ color: "#6b6b60" }}>
+                  <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#6b6b60]">
                     {recomendacionActual.categoria}
                   </p>
-                  <p className="mt-3 text-sm leading-5" style={{ color: "#3d5c3e" }}>
+                  <p className="mt-2 text-xs leading-4 text-[#0B493D]">
                     {recomendacionActual.razon}
                   </p>
                 </div>
@@ -203,20 +203,20 @@ export default function CarruselClima({
             ) : (
               <Link
                 href={`/outfits?outfit=${encodeURIComponent(recomendacionActual.outfit.id)}`}
-                className="mx-auto block max-w-sm overflow-hidden rounded-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
-                style={{ background: "rgba(255,255,255,0.9)", boxShadow: "0 8px 24px rgba(0,0,0,0.06)" }}
+                className="mx-auto block w-full max-w-[11rem] overflow-hidden rounded-xl border border-[#E5E1D9] bg-white transition duration-200 hover:border-[#A8BC99] hover:shadow-[0_8px_24px_rgba(11,73,61,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B493D] md:flex md:max-w-none"
+                style={{ boxShadow: "0 4px 16px rgba(11,73,61,0.05)" }}
                 aria-label={`Ver outfit ${recomendacionActual.titulo}: ${recomendacionActual.razon}`}
               >
                 <div
-                  className={`mx-auto grid h-[260px] w-full max-w-[320px] gap-1 p-2 ${
+                  className={`mx-auto grid aspect-[4/5] w-full max-w-[11rem] gap-1 p-1 md:aspect-auto md:min-h-[9rem] md:w-32 md:shrink-0 ${
                     recomendacionActual.outfit.outfitPrendas.length > 1
                       ? "grid-cols-2 grid-rows-2"
                       : "grid-cols-1"
                   }`}
-                  style={{ background: "linear-gradient(135deg,#eaf4eb,#f4ede2)" }}
+                  style={{ background: "#F7F1E7" }}
                 >
                   {recomendacionActual.outfit.outfitPrendas.slice(0, 4).map(({ prenda }, indice) => (
-                    <div key={`${prenda.id}-${indice}`} className="min-h-0 min-w-0 overflow-hidden rounded-xl bg-white/70">
+                    <div key={`${prenda.id}-${indice}`} className="min-h-0 min-w-0 overflow-hidden rounded-lg border border-[#E5E1D9] bg-white">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={prenda.urlImagen}
@@ -226,17 +226,17 @@ export default function CarruselClima({
                     </div>
                   ))}
                   {recomendacionActual.outfit.outfitPrendas.length === 0 && (
-                    <div className="flex items-center justify-center"><Shirt size={36} color="#A8C5A0" /></div>
+                    <div className="flex items-center justify-center"><Shirt size={36} color="#6CAF7B" /></div>
                   )}
                 </div>
-                <div className="p-4">
-                  <h3 className="truncate text-base font-light" style={{ color: "#1a1a1a" }}>
+                <div className="p-3 md:flex md:min-w-0 md:flex-1 md:flex-col md:justify-center">
+                  <h3 className="truncate text-base font-semibold text-[#333333]">
                     {recomendacionActual.titulo}
                   </h3>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.15em]" style={{ color: "#6b6b60" }}>
+                  <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#6b6b60]">
                     {recomendacionActual.categoria}
                   </p>
-                  <p className="mt-3 text-sm leading-5" style={{ color: "#3d5c3e" }}>
+                  <p className="mt-2 text-xs leading-4 text-[#0B493D]">
                     {recomendacionActual.razon}
                   </p>
                 </div>
@@ -250,8 +250,7 @@ export default function CarruselClima({
               onClick={() => mover(-1)}
               disabled={recomendaciones.length < 2}
               aria-label="Recomendación anterior"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:bg-[#A8C5A0]/15 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
-              style={{ borderColor: "#e8e4de", color: "#2C3E2D" }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#E5E1D9] text-[#0B493D] transition hover:border-[#A8BC99] hover:bg-[#C6EFD6]/30 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B493D]"
             >
               <ChevronLeft size={20} aria-hidden="true" />
             </button>
@@ -263,10 +262,10 @@ export default function CarruselClima({
                   onClick={() => setIndiceActivo(indice)}
                   aria-label={`Mostrar recomendación: ${recomendacion.titulo}`}
                   aria-current={indice === indiceActual ? "true" : undefined}
-                  className="h-2 rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
+                  className="h-2 rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B493D]"
                   style={{
                     width: indice === indiceActual ? 18 : 7,
-                    background: indice === indiceActual ? "#2C3E2D" : "#d8d5ce",
+                    background: indice === indiceActual ? "#0B493D" : "#C7C2B8",
                   }}
                 />
               ))}
@@ -276,8 +275,7 @@ export default function CarruselClima({
               onClick={() => mover(1)}
               disabled={recomendaciones.length < 2}
               aria-label="Recomendación siguiente"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:bg-[#A8C5A0]/15 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
-              style={{ borderColor: "#e8e4de", color: "#2C3E2D" }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#E5E1D9] text-[#0B493D] transition hover:border-[#A8BC99] hover:bg-[#C6EFD6]/30 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B493D]"
             >
               <ChevronRight size={20} aria-hidden="true" />
             </button>
@@ -288,20 +286,19 @@ export default function CarruselClima({
         </>
       ) : (
         <div className="flex flex-1 flex-col justify-center">
-          <p className="text-sm leading-6" style={{ color: "#6b6b60" }}>
+          <p className="text-sm leading-6 text-[#55524C]">
             No encontramos prendas de tu closet que coincidan con el clima de hoy.
           </p>
           <ul className="mt-3 space-y-2">
             {sugerenciasGenerales.map((sugerencia) => (
-              <li key={sugerencia} className="text-sm leading-5" style={{ color: "#3d5c3e" }}>
+              <li key={sugerencia} className="text-sm leading-5 text-[#0B493D]">
                 {sugerencia}
               </li>
             ))}
           </ul>
           <Link
             href="/prendas/nueva"
-            className="mt-5 inline-flex min-h-11 w-fit items-center justify-center rounded-xl px-4 text-sm font-medium transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
-            style={{ background: "#2C3E2D", color: "#F9F5F0" }}
+            className="mt-5 inline-flex min-h-11 w-fit items-center justify-center rounded-xl border border-[#A8BC99] bg-[#A8BC99] px-4 text-sm font-bold text-[#0B493D] transition hover:border-[#93AA84] hover:bg-[#93AA84] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B493D] active:scale-[0.98]"
           >
             Cargar prendas
           </Link>
