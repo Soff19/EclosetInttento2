@@ -345,12 +345,13 @@ export default function ProductosPage() {
   }
 
   return (
-    <main className={`${styles.page} min-h-screen px-0 pb-32 pt-0`}>
+    <main className={`${styles.page} ${styles.marketplacePage} min-h-screen px-0 pb-32 pt-0`}>
       <EditorialSectionBanner
         id="marketplace-title"
         eyebrow="Compra, vende y reutiliza"
         title="Marketplace"
         description="Explorá publicaciones de la comunidad y encontrá prendas para reutilizar."
+        intro={<BackLink href="/home" label="Volver al inicio" iconOnly className={`!mb-0 ${styles.bannerBackLink}`} />}
       >
         <div className={styles.marketplaceBannerActions}>
           <div className={styles.marketplaceTabs} role="group" aria-label="Publicaciones">
@@ -383,11 +384,6 @@ export default function ProductosPage() {
         </div>
       </EditorialSectionBanner>
       <div className={`${styles.content} relative z-10 px-4 pt-6 sm:px-6`}>
-        <BackLink
-          href="/home"
-          label="Volver al home"
-          className={styles.marketplaceBackLink}
-        />
         <div className={styles.marketplaceToolbar}>
           <label className={styles.marketplaceSearch}>
             <Search size={18} aria-hidden="true" />

@@ -5,6 +5,14 @@
   font-family: var(--font-nunito-sans), Arial, sans-serif;
 }
 
+.marketplacePage {
+  background-color: #f7f1e7;
+  background-image:
+    radial-gradient(ellipse at 12% 18%, rgb(248 198 217 / 30%), transparent 34rem),
+    radial-gradient(ellipse at 88% 38%, rgb(166 216 247 / 28%), transparent 38rem),
+    radial-gradient(ellipse at 48% 78%, rgb(198 239 214 / 42%), transparent 36rem);
+}
+
 .marketplaceBannerActions {
   display: flex;
   align-items: center;

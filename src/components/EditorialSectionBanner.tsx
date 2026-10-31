@@ -9,6 +9,7 @@ interface EditorialSectionBannerProps {
   description: string;
   intro?: ReactNode;
   children?: ReactNode;
+  className?: string;
 }
 
 export default function EditorialSectionBanner({
@@ -18,9 +19,10 @@ export default function EditorialSectionBanner({
   description,
   intro,
   children,
+  className,
 }: EditorialSectionBannerProps) {
   return (
-    <section className={styles.sectionBanner} aria-labelledby={id}>
+    <section className={`${styles.sectionBanner} ${className ?? ""}`} aria-labelledby={id}>
       <div className={styles.sectionBannerArt}>
         <LoginIllustration />
       </div>

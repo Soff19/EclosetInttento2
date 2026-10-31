@@ -6,6 +6,7 @@ import BackLink from "@/components/BackLink";
 import BottomNavigation from "@/components/closet/BottomNavigation";
 import EditorialSectionBanner from "@/components/EditorialSectionBanner";
 import styles from "../fashion-sections.module.css";
+import profileStyles from "./profile.module.css";
 
 type User = {
   id: string;
@@ -275,7 +276,7 @@ export default function PerfilPage() {
   }
 
   if (!user) {
-    return <main className="min-h-screen p-8 text-[#55524C]" style={{ background: "#F7F1E7" }}>Cargando perfil...</main>;
+    return <main className={`${profileStyles.profilePage} min-h-screen p-8 text-[#55524C]`}>Cargando perfil...</main>;
   }
 
   const choiceClass = (active: boolean) =>
@@ -284,26 +285,32 @@ export default function PerfilPage() {
         ? "border-[#0B493D] bg-[#C6EFD6] text-[#0B493D]"
         : "border-[#E5E1D9] bg-white text-[#55524C] hover:border-[#A8BC99]"
     }`;
+  const profileStats = [
+    ["Prendas", user._count?.prendas ?? 0],
+    ["Outfits", user._count?.outfits ?? 0],
+    ["Productos", user._count?.productos ?? 0],
+  ] as const;
 
   return (
-    <main className={`${styles.page} min-h-screen px-0 pb-32 pt-0 text-[#333333]`}>
+    <main className={`${styles.page} ${profileStyles.profilePage} min-h-screen px-0 pb-32 pt-0 text-[#333333]`}>
       <EditorialSectionBanner
         id="profile-banner-title"
         eyebrow=""
         title=""
         description=""
         intro={<BackLink href="/home" label="Volver al inicio" iconOnly className={`!mb-0 ${styles.bannerBackLink}`} />}
+        className={profileStyles.profileBanner}
       />
       <div className="relative z-10 w-full px-4 pt-5 sm:px-6 sm:pt-7 lg:px-10">
 
         <div
-          className="mb-5 flex flex-wrap items-center gap-4 rounded-3xl border border-[#E5E1D9] bg-white/90 p-5 shadow-[0_8px_28px_rgba(51,51,51,0.06)] sm:p-6"
+          className={`${profileStyles.profileSummary} mb-5 flex flex-wrap items-center gap-4 rounded-3xl border border-[#A8BC99] bg-white/90 p-5 shadow-[0_8px_28px_rgba(51,51,51,0.06)] sm:p-6 lg:flex-nowrap lg:gap-6`}
         >
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             aria-label="Cambiar foto de perfil"
-            className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-[#C6EFD6] bg-[#F2E6D5] text-2xl"
+            className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-[#C6EFD6] bg-[#F2E6D5] text-2xl lg:h-36 lg:w-36 lg:border-4"
           >
             {user.fotoPerfil ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -317,12 +324,25 @@ export default function PerfilPage() {
               Cambiar
             </span>
           </button>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 lg:min-w-[12rem]">
             <p className="truncate text-xl font-bold text-[#0B493D]">{user.nombre || "Sin nombre"}</p>
             <p className="truncate text-sm text-[#6b6b60]">
               {user.email}
             </p>
             <p className="mt-1 text-xs text-[#6b6b60]">Tocá la foto para cambiarla</p>
+          </div>
+          <div className="hidden grid-cols-3 gap-2 lg:grid lg:w-[20rem] lg:shrink-0">
+            {profileStats.map(([label, value]) => (
+              <div
+                key={String(label)}
+                className="rounded-2xl border border-[#A8BC99] bg-[#F7F1E7]/70 px-2 py-3 text-center sm:px-4"
+              >
+                <p className="text-2xl font-bold text-[#0B493D]">{value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#6b6b60]">
+                  {label}
+                </p>
+              </div>
+            ))}
           </div>
           <button
             type="button"
@@ -366,37 +386,30 @@ export default function PerfilPage() {
 
         {message && <p role="status" className="mb-4 text-sm text-[#0B493D]">{message}</p>}
 
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.7fr)]">
-          <div className="space-y-5">
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            ["Prendas", user._count?.prendas ?? 0],
-            ["Outfits", user._count?.outfits ?? 0],
-            ["Productos", user._count?.productos ?? 0],
-          ].map(([label, value]) => (
-            <div
-              key={String(label)}
-              className="rounded-2xl border border-[#E5E1D9] bg-white/90 p-4 text-center shadow-[0_4px_16px_rgba(51,51,51,0.04)]"
-            >
-              <p className="text-2xl font-bold text-[#0B493D]">{value}</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#6b6b60]">
-                {label}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <button
-          onClick={logout}
-          className="min-h-12 w-full rounded-xl border border-[#E5E1D9] bg-white px-4 font-bold text-[#9b4141] transition-colors hover:bg-[#fff3f0]"
-        >
-          Cerrar sesión
-        </button>
+        <div className="grid items-start gap-5">
+          <div className="grid grid-cols-3 gap-3 lg:hidden">
+            {profileStats.map(([label, value]) => (
+              <div
+                key={String(label)}
+                className="rounded-2xl border border-[#A8BC99] bg-white/90 p-4 text-center shadow-[0_4px_16px_rgba(51,51,51,0.04)]"
+              >
+                <p className="text-2xl font-bold text-[#0B493D]">{value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#6b6b60]">
+                  {label}
+                </p>
+              </div>
+            ))}
           </div>
-
+          <button
+            type="button"
+            onClick={logout}
+            className="min-h-12 w-full rounded-xl border border-[#A8BC99] bg-white px-4 font-bold text-[#9b4141] transition-colors hover:bg-[#fff3f0] lg:hidden"
+          >
+            Cerrar sesión
+          </button>
         <form
           onSubmit={savePreferences}
-          className="space-y-6 rounded-3xl border border-[#E5E1D9] bg-white/90 p-5 shadow-[0_8px_28px_rgba(51,51,51,0.06)] sm:p-6"
+          className="space-y-6 rounded-3xl border border-[#A8BC99] bg-white/90 p-5 shadow-[0_8px_28px_rgba(51,51,51,0.06)] sm:p-6"
         >
           <header className="border-b border-[#E5E1D9] pb-4">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B493D]">Personalización</p>
@@ -418,7 +431,7 @@ export default function PerfilPage() {
                   </button>
                 </div>
               )}
-              <details className="rounded-2xl border border-[#E5E1D9] bg-[#F7F1E7] p-4">
+              <details className="rounded-2xl border border-[#A8BC99] bg-[#F7F1E7] p-4">
                 <summary className="cursor-pointer text-sm font-bold text-[#0B493D] marker:text-[#0B493D]">
                   Talles <span className="font-normal text-[#6b6b60]">
                     · {preferences.tallesArriba.length + preferences.tallesAbajo.length + preferences.tallesCalzado.length} seleccionados · Sistema {preferences.tallaSistema}
@@ -469,7 +482,7 @@ export default function PerfilPage() {
                 </div>
               </details>
 
-              <details className="rounded-2xl border border-[#E5E1D9] bg-[#F7F1E7] p-4">
+              <details className="rounded-2xl border border-[#A8BC99] bg-[#F7F1E7] p-4">
                 <summary className="cursor-pointer text-sm font-bold text-[#0B493D] marker:text-[#0B493D]">
                   Estilos favoritos <span className="font-normal text-[#6b6b60]">· {preferences.estilos.length} seleccionados</span>
                 </summary>
@@ -491,7 +504,7 @@ export default function PerfilPage() {
                 </div>
               </details>
 
-              <details className="rounded-2xl border border-[#E5E1D9] bg-[#F7F1E7] p-4">
+              <details className="rounded-2xl border border-[#A8BC99] bg-[#F7F1E7] p-4">
                 <summary className="cursor-pointer text-sm font-bold text-[#0B493D] marker:text-[#0B493D]">
                   Colores favoritos <span className="font-normal text-[#6b6b60]">· {preferences.colores.trim() || "Sin definir"}</span>
                 </summary>
@@ -524,6 +537,14 @@ export default function PerfilPage() {
           </button>
         </form>
         </div>
+
+        <button
+          type="button"
+          onClick={logout}
+          className="mt-5 hidden min-h-12 w-full rounded-xl border border-[#A8BC99] bg-white px-4 font-bold text-[#9b4141] transition-colors hover:bg-[#fff3f0] lg:ml-auto lg:block lg:w-auto lg:min-w-48"
+        >
+          Cerrar sesión
+        </button>
 
         {editProfileOpen && (
           <div

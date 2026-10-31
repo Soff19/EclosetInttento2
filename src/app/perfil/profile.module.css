@@ -1,0 +1,25 @@
+.profilePage {
+  background-color: #f9e6d2;
+}
+
+.profileBanner.profileBanner {
+  min-height: 8rem;
+}
+
+.profileBanner :global(.sectionBannerCopy) {
+  padding-block: 0.75rem;
+}
+
+.profileSummary {
+  position: relative;
+}
+
+@media (min-width: 900px) {
+  .profileBanner.profileBanner {
+    min-height: 9rem;
+  }
+
+  .profileSummary {
+    margin-top: -0.5cm;
+  }
+}
