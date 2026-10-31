@@ -67,6 +67,11 @@ export default function ClosetPage() {
     setSelectedGarment(null);
   }, []);
 
+  const handleGarmentDeleted = useCallback((prendaId: string) => {
+    setPrendas((current) => current.filter((prenda) => prenda.id !== prendaId));
+    setSelectedGarment(null);
+  }, []);
+
   useEffect(() => {
     if (newGarmentOpen) return;
 
@@ -217,7 +222,11 @@ export default function ClosetPage() {
       </div>
 
       {selectedGarment && (
-        <GarmentDetailModal prenda={selectedGarment} onClose={closeGarmentDetails} />
+        <GarmentDetailModal
+          prenda={selectedGarment}
+          onClose={closeGarmentDetails}
+          onDeleted={handleGarmentDeleted}
+        />
       )}
 
       {newGarmentOpen && (

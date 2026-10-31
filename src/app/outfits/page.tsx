@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import BackLink from "@/components/BackLink";
 import BottomNavigation from "@/components/closet/BottomNavigation";
 import EditorialSectionBanner from "@/components/EditorialSectionBanner";
@@ -22,6 +22,9 @@ export default function OutfitsPage() {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [selectedOutfitId, setSelectedOutfitId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const closeOutfit = useCallback(() => {
     setSelectedOutfitId(null);
     router.push("/outfits", { scroll: false });
@@ -58,11 +61,36 @@ export default function OutfitsPage() {
   }, [selectedOutfitId, closeOutfit]);
 
   function openOutfit(outfitId: string) {
+    setConfirmDelete(false);
+    setDeleteError("");
     setSelectedOutfitId(outfitId);
     router.push(`/outfits?outfit=${encodeURIComponent(outfitId)}`, { scroll: false });
   }
 
   const selectedOutfit = outfits.find((outfit) => outfit.id === selectedOutfitId);
+
+  async function deleteOutfit() {
+    if (!selectedOutfit || deleting) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/outfits/${encodeURIComponent(selectedOutfit.id)}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: "Bearer " + token } : undefined,
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No se pudo eliminar el outfit.");
+      setOutfits((current) => current.filter((outfit) => outfit.id !== selectedOutfit.id));
+      setConfirmDelete(false);
+      closeOutfit();
+    } catch (deleteError) {
+      setDeleteError(deleteError instanceof Error ? deleteError.message : "No se pudo eliminar el outfit.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <main className={`${styles.page} min-h-screen px-0 pb-32 pt-0`}>
@@ -179,6 +207,44 @@ export default function OutfitsPage() {
                 </article>
               ))}
             </div>
+            {deleteError && <p role="alert" className={`${styles.error} mt-4`}>{deleteError}</p>}
+            {confirmDelete ? (
+              <div className="mt-5 rounded-xl border border-[#E5E1D9] bg-white p-4">
+                <p className="text-sm font-semibold text-[#333333]">¿Eliminar este outfit?</p>
+                <p className="mt-1 text-xs text-[#55524C]">Esta acción no se puede deshacer.</p>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => setConfirmDelete(false)}
+                    className={`${styles.secondaryButton} flex-1`}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => void deleteOutfit()}
+                    className={`${styles.primaryButton} flex-1`}
+                    style={{ borderColor: "#B85555", background: "#B85555", color: "#fff" }}
+                  >
+                    {deleting ? "Eliminando..." : "Sí, eliminar"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteError("");
+                  setConfirmDelete(true);
+                }}
+                className={`${styles.secondaryButton} mt-5 w-full`}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                Eliminar outfit
+              </button>
+            )}
           </section>
         </div>
       )}

@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ExternalLink, Heart, Plus, Search, Star, Trash2, X } from "lucide-react";
-import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronDown, ExternalLink, Heart, Plus, Search, Trash2, X } from "lucide-react";
 import BackLink from "@/components/BackLink";
 import BottomNavigation from "@/components/closet/BottomNavigation";
+import NuevoProductoForm, {
+  MARKETPLACE_COLORS,
+  MARKETPLACE_SIZES,
+  MARKETPLACE_STYLES,
+  MARKETPLACE_TYPES,
+} from "@/components/productos/NuevoProductoForm";
+import EditorialSectionBanner from "@/components/EditorialSectionBanner";
+import styles from "../fashion-sections.module.css";
 
-type Resena = {
-  id: string;
-  puntuacion: number;
-  comentario: string | null;
-  creadoEn: string;
-  usuario: { nombre: string | null; email: string };
-};
 type Producto = {
   id: string;
   titulo: string;
@@ -25,18 +25,16 @@ type Producto = {
   favorito: boolean;
   solicitudEstado: string | null;
   promedio: number | null;
-  cantidadResenas: number;
-  resenas: Resena[];
   esPropio: boolean;
   usuario: {
     id: string;
     nombre: string | null;
-    fotoPerfil: string | null;
     email: string;
   };
 };
 
 type ApiResponse = Record<string, unknown>;
+type MarketplaceFilter = "style" | "type" | "color" | "size";
 
 function unexpectedResponseMessage(status: number) {
   if (status === 404) {
@@ -66,10 +64,50 @@ function getApiError(data: ApiResponse, fallback: string) {
   return typeof data.error === "string" ? data.error : fallback;
 }
 
+function getProductTags(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((tag): tag is string => typeof tag === "string").map((tag) => tag.trim().toLowerCase());
+  }
+  if (typeof value !== "string") return [];
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((tag): tag is string => typeof tag === "string").map((tag) => tag.trim().toLowerCase());
+    }
+  } catch {
+    return value.split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean);
+  }
+
+  return [];
+}
+
+function formatProductTag(tag: string): string {
+  const [category, ...parts] = tag.split("-");
+  const value = parts.join("-");
+  if (category === "tipo" && value) {
+    const type = MARKETPLACE_TYPES.find(([option]) => option === value)?.[1];
+    return `Tipo: ${type || value}`;
+  }
+  if (category === "color" && value) {
+    const color = MARKETPLACE_COLORS.find(([option]) => option === value)?.[1];
+    return `Color: ${color || value}`;
+  }
+  if (category === "talle" && value) return `Talle: ${value.toUpperCase()}`;
+  if (category === "sistema" && value) return `Sistema de talles: ${value.toUpperCase()}`;
+  const style = MARKETPLACE_STYLES.find(([option]) => option === tag)?.[1];
+  if (style) return style;
+  return tag.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [colorFilter, setColorFilter] = useState("");
+  const [sizeFilter, setSizeFilter] = useState("");
+  const [openFilter, setOpenFilter] = useState<MarketplaceFilter | null>(null);
   const [activeTab, setActiveTab] = useState<"explorar" | "mias">("explorar");
   const [selected, setSelected] = useState<Producto | null>(null);
   const [message, setMessage] = useState("");
@@ -77,7 +115,77 @@ export default function ProductosPage() {
   const [deleteError, setDeleteError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [review, setReview] = useState({ puntuacion: 5, comentario: "" });
+  const [changePriceOpen, setChangePriceOpen] = useState(false);
+  const [priceInput, setPriceInput] = useState("");
+  const [savingPrice, setSavingPrice] = useState(false);
+  const [priceError, setPriceError] = useState("");
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishedProductsVersion, setPublishedProductsVersion] = useState(0);
+  const publishButtonRef = useRef<HTMLButtonElement>(null);
+
+  const closePublish = useCallback(() => {
+    setPublishOpen(false);
+    requestAnimationFrame(() => publishButtonRef.current?.focus());
+  }, []);
+
+  const handleProductPublished = useCallback(() => {
+    setPublishOpen(false);
+    setPublishedProductsVersion((version) => version + 1);
+    requestAnimationFrame(() => publishButtonRef.current?.focus());
+  }, []);
+
+  const visibleProducts = productos.filter((producto) => {
+    const productTags = getProductTags(producto.etiquetas);
+    const productDetails = `${producto.titulo} ${producto.descripcion}`.toLowerCase();
+    return (
+      (!typeFilter || productDetails.includes(typeFilter) || productTags.includes(`tipo-${typeFilter}`)) &&
+      (!colorFilter || productTags.includes(`color-${colorFilter}`)) &&
+      (!sizeFilter || productTags.includes(`talle-${sizeFilter.toLowerCase()}`))
+    );
+  });
+  const selectedProductTags = selected ? getProductTags(selected.etiquetas) : [];
+  const filterControls = [
+    {
+      id: "style" as const,
+      label: "Estilo",
+      value: tag,
+      options: [
+        { value: "", label: "Todos" },
+        ...MARKETPLACE_STYLES.map(([value, label]) => ({ value, label })),
+      ],
+      onSelect: setTag,
+    },
+    {
+      id: "type" as const,
+      label: "Tipo",
+      value: typeFilter,
+      options: [
+        { value: "", label: "Todos" },
+        ...MARKETPLACE_TYPES.map(([value, label]) => ({ value, label })),
+      ],
+      onSelect: setTypeFilter,
+    },
+    {
+      id: "color" as const,
+      label: "Color",
+      value: colorFilter,
+      options: [
+        { value: "", label: "Todos" },
+        ...MARKETPLACE_COLORS.map(([value, label]) => ({ value, label })),
+      ],
+      onSelect: setColorFilter,
+    },
+    {
+      id: "size" as const,
+      label: "Talle",
+      value: sizeFilter,
+      options: [
+        { value: "", label: "Todos" },
+        ...MARKETPLACE_SIZES.map((value) => ({ value, label: value })),
+      ],
+      onSelect: setSizeFilter,
+    },
+  ];
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -107,7 +215,7 @@ export default function ProductosPage() {
       }
     }, 250);
     return () => clearTimeout(timer);
-  }, [query, tag, activeTab]);
+  }, [query, tag, activeTab, publishedProductsVersion]);
 
   async function action<T extends ApiResponse = ApiResponse>(path: string, body?: object): Promise<T> {
     const token = localStorage.getItem("token");
@@ -198,173 +306,192 @@ export default function ProductosPage() {
     }
   }
 
-  async function submitReview() {
-    if (!selected) return;
+  async function changeProductPrice(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected || savingPrice) return;
+    const price = Number(priceInput);
+    if (!Number.isFinite(price) || price < 0) {
+      setPriceError("Ingresá un precio válido.");
+      return;
+    }
+
+    setSavingPrice(true);
+    setPriceError("");
     try {
-      await action(`/api/productos/${selected.id}/resena`, review);
-      const response = await fetch(`/api/productos/${selected.id}`);
-      const data = await response.json();
-      if (response.ok) {
-        const resenas = data.producto.resenas as Resena[];
-        const promedio = resenas.length
-          ? resenas.reduce((sum, item) => sum + item.puntuacion, 0) /
-            resenas.length
-          : null;
-        setSelected((current) =>
-          current
-            ? { ...current, resenas, promedio, cantidadResenas: resenas.length }
-            : current,
-        );
-        setProductos((items) =>
-          items.map((item) =>
-            item.id === selected.id
-              ? { ...item, resenas, promedio, cantidadResenas: resenas.length }
-              : item,
-          ),
-        );
-      }
-      setMessage("Gracias por compartir tu experiencia.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "No se pudo guardar la reseña",
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/productos/${encodeURIComponent(selected.id)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: "Bearer " + token } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ precio: price }),
+      });
+      const data = await readApiResponse<{ error?: string }>(response);
+      if (!response.ok) throw new Error(getApiError(data, "No se pudo actualizar el precio."));
+
+      setProductos((items) =>
+        items.map((item) => item.id === selected.id ? { ...item, precio: price } : item),
       );
+      setSelected((item) => item?.id === selected.id ? { ...item, precio: price } : item);
+      setChangePriceOpen(false);
+      setMessage("Precio actualizado.");
+    } catch (error) {
+      setPriceError(error instanceof Error ? error.message : "No se pudo actualizar el precio.");
+    } finally {
+      setSavingPrice(false);
     }
   }
 
   return (
-    <main
-      className="min-h-screen relative overflow-hidden px-5 pt-6 pb-32"
-      style={{ background: "#F9F5F0" }}
-    >
-      <div
-        className="absolute top-[-80px] left-[-60px] w-72 h-72 rounded-full blur-3xl opacity-20"
-        style={{ background: "#A8C5A0" }}
-      />
-      <div className="relative z-10 max-w-2xl mx-auto">
-        <div className="flex items-center justify-between">
-          <BackLink href="/home" label="Volver al home" />
-          <div className="flex items-center gap-4">
-            <Link
-              href="/productos/nuevo"
-              className="flex items-center gap-1 text-xs uppercase tracking-wider"
-              style={{ color: "#2C3E2D" }}
-            >
-              <Plus size={15} /> Publicar
-            </Link>
-          </div>
-        </div>
-        <div className="mt-5 flex gap-2">
-          {([
-            ["explorar", "Explorar"],
-            ["mias", "Mis publicaciones"],
-          ] as const).map(([tab, label]) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className="rounded-full px-4 py-2 text-sm"
-              style={{
-                background: activeTab === tab ? "#2C3E2D" : "#fff",
-                color: activeTab === tab ? "#fff" : "#6b6b60",
-                border: "1px solid #e8e4de",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <p
-          className="uppercase text-[10px] tracking-[0.18em] mt-5"
-          style={{ color: "#6b6b60" }}
-        >
-          Compra, vende y reutiliza
-        </p>
-        <h1 className="text-[2rem] font-light mt-1">Marketplace ✦</h1>
-        <div
-          className="mt-5 flex items-center gap-3 rounded-2xl px-4 py-3"
-          style={{ background: "#fff", border: "1px solid #e8e4de" }}
-        >
-          <Search size={18} style={{ color: "#9a9a8e" }} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar prendas, estilos..."
-            className="w-full bg-transparent outline-none text-sm"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2 mt-3">
-          {["", "casual", "vintage", "verano", "elegante", "deportivo"].map(
-            (item) => (
+    <main className={`${styles.page} min-h-screen px-0 pb-32 pt-0`}>
+      <EditorialSectionBanner
+        id="marketplace-title"
+        eyebrow="Compra, vende y reutiliza"
+        title="Marketplace"
+        description="Explorá publicaciones de la comunidad y encontrá prendas para reutilizar."
+      >
+        <div className={styles.marketplaceBannerActions}>
+          <div className={styles.marketplaceTabs} role="group" aria-label="Publicaciones">
+            {([
+              ["explorar", "Explorar"],
+              ["mias", "Mis publicaciones"],
+            ] as const).map(([tab, label]) => (
               <button
-                key={item || "todos"}
-                onClick={() => setTag(item)}
-                className="rounded-full px-3 py-1.5 text-xs"
-                style={{
-                  background: tag === item ? "#2C3E2D" : "#fff",
-                  color: tag === item ? "#fff" : "#6b6b60",
-                  border: "1px solid #e8e4de",
-                }}
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                aria-pressed={activeTab === tab}
+                className={styles.marketplaceTab}
               >
-                {item || "Todos"}
+                {label}
               </button>
-            ),
+            ))}
+          </div>
+          <button
+            ref={publishButtonRef}
+            type="button"
+            onClick={() => setPublishOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={publishOpen}
+            aria-controls="marketplace-publish-dialog"
+            className={styles.marketplacePublish}
+          >
+            <Plus size={16} aria-hidden="true" /> Publicar
+          </button>
+        </div>
+      </EditorialSectionBanner>
+      <div className={`${styles.content} relative z-10 px-4 pt-6 sm:px-6`}>
+        <BackLink
+          href="/home"
+          label="Volver al home"
+          className={styles.marketplaceBackLink}
+        />
+        <div className={styles.marketplaceToolbar}>
+          <label className={styles.marketplaceSearch}>
+            <Search size={18} aria-hidden="true" />
+            <span className="sr-only">Buscar publicaciones</span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar prendas, estilos..."
+            />
+          </label>
+          <div className={styles.marketplaceAttributeFilters}>
+            {filterControls.map((filter) => {
+              const selectedLabel = filter.options.find((option) => option.value === filter.value)?.label;
+              return (
+                <button
+                  key={filter.id}
+                  type="button"
+                  aria-label={`${filter.label}${selectedLabel && filter.value ? `: ${selectedLabel}` : ""}`}
+                  aria-expanded={openFilter === filter.id}
+                  aria-controls="marketplace-filter-options"
+                  onClick={() => setOpenFilter(openFilter === filter.id ? null : filter.id)}
+                  className={styles.marketplaceAttributeTrigger}
+                >
+                  <span className={styles.marketplaceAttributeLabel}>
+                    {filter.label}
+                    {filter.value && <small>{selectedLabel}</small>}
+                  </span>
+                  <ChevronDown size={16} aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+          {openFilter && (
+            <div
+              id="marketplace-filter-options"
+              className={styles.marketplaceAttributeOptions}
+              role="group"
+              aria-label={`${filterControls.find((filter) => filter.id === openFilter)?.label} opciones`}
+            >
+              {filterControls
+                .find((filter) => filter.id === openFilter)
+                ?.options.map((option) => {
+                  const filter = filterControls.find((item) => item.id === openFilter);
+                  if (!filter) return null;
+                  return (
+                    <button
+                      key={option.value || "todos"}
+                      type="button"
+                      aria-pressed={filter.value === option.value}
+                      onClick={() => {
+                        filter.onSelect(option.value);
+                        setOpenFilter(null);
+                      }}
+                      className={styles.marketplaceAttributeOption}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+            </div>
           )}
         </div>
         {(message || loadError) && (
-          <p className="mt-4 text-sm" style={{ color: loadError ? "#b85555" : "#2C3E2D" }}>
+          <p
+            className={`${styles.marketplaceMessage} ${loadError ? styles.marketplaceError : ""}`}
+            role={loadError ? "alert" : "status"}
+          >
             {loadError || message}
           </p>
         )}
-        <div className="grid gap-4 mt-6 sm:grid-cols-2">
-          {productos.map((producto) => (
-            <article
-              key={producto.id}
-              className="overflow-hidden rounded-[22px]"
-              style={{
-                background: "rgba(255,255,255,0.88)",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
-              }}
-            >
+        <div className={styles.marketplaceGrid}>
+          {visibleProducts.map((producto) => (
+            <article key={producto.id} className={styles.marketplaceCard}>
               <button
-                onClick={() => setSelected(producto)}
-                className="w-full text-left"
+                onClick={() => {
+                  setSelected(producto);
+                }}
+                className={styles.marketplaceProduct}
               >
-                <div
-                  className="h-48"
-                  style={{
-                    background: "linear-gradient(135deg,#d7ead4,#f4ede2)",
-                  }}
-                >
+                <div className={styles.marketplaceImage}>
                   {producto.imagen && (
                     <img
                       src={producto.imagen}
                       alt={producto.titulo}
-                      className="w-full h-full object-cover"
                     />
                   )}
                 </div>
-                <div className="p-4">
-                  <div className="flex justify-between gap-2">
-                    <h2 className="font-light text-lg">{producto.titulo}</h2>
-                    <span className="font-medium">${producto.precio}</span>
+                <div className={styles.marketplaceProductInfo}>
+                  <div className={styles.marketplaceProductHeading}>
+                    <h2>{producto.titulo}</h2>
+                    <span>${producto.precio}</span>
                   </div>
-                  <p className="text-xs mt-2" style={{ color: "#9a9a8e" }}>
+                  <p className={styles.marketplaceMeta}>
                     {producto.esPropio ? "Mi publicación" : producto.usuario.nombre || producto.usuario.email} · {producto.estado}
                   </p>
-                  <div className="flex flex-wrap gap-1 mt-3">
-                    {producto.etiquetas.slice(0, 3).map((item) => (
-                      <span
-                        key={item}
-                        className="text-[10px] px-2 py-1 rounded-full"
-                        style={{ background: "#f4ede2", color: "#6b6b60" }}
-                      >
-                        #{item}
-                      </span>
+                  <div className={styles.marketplaceTags}>
+                    {getProductTags(producto.etiquetas).slice(0, 3).map((item) => (
+                      <span key={item}>#{item}</span>
                     ))}
                   </div>
                 </div>
               </button>
-              <div className="px-4 pb-4 flex justify-between items-center">
-                <span className="text-xs" style={{ color: "#9a9a8e" }}>
+              <div className={styles.marketplaceCardFooter}>
+                <span className={styles.marketplaceRating}>
                   {producto.promedio
                     ? `★ ${producto.promedio.toFixed(1)}`
                     : "Sin reseñas"}
@@ -372,11 +499,7 @@ export default function ProductosPage() {
                 <button
                   aria-label="Guardar en favoritos"
                   onClick={() => toggleFavorite(producto)}
-                  className="p-2 rounded-full"
-                  style={{
-                    color: producto.favorito ? "#b85555" : "#6b6b60",
-                    background: "#f9f5f0",
-                  }}
+                  className={`${styles.marketplaceFavorite} ${producto.favorito ? styles.marketplaceFavoriteActive : ""}`}
                 >
                   <Heart
                     size={17}
@@ -387,8 +510,8 @@ export default function ProductosPage() {
             </article>
           ))}
         </div>
-        {productos.length === 0 && !loadError && (
-          <p className="mt-8" style={{ color: "#9a9a8e" }}>
+        {visibleProducts.length === 0 && !loadError && (
+          <p className={styles.marketplaceEmpty}>
             {activeTab === "mias"
               ? "Todavía no hiciste publicaciones."
               : "No encontramos publicaciones con esos filtros."}
@@ -397,12 +520,11 @@ export default function ProductosPage() {
       </div>
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4"
           style={{ background: "rgba(26,26,26,0.4)" }}
         >
           <section
-            className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl p-6"
-            style={{ background: "#F9F5F0" }}
+            className={`${styles.marketplaceModal} w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl p-6`}
           >
             <div className="flex justify-between">
               <div>
@@ -421,22 +543,39 @@ export default function ProductosPage() {
                 <X size={20} />
               </button>
             </div>
-            <p className="text-sm mt-4" style={{ color: "#6b6b60" }}>
-              {selected.descripcion}
-            </p>
+            <div className={`${styles.marketplaceDetailImage} mt-5`}>
+              {selected.imagen ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={selected.imagen} alt={selected.titulo} />
+              ) : (
+                <span>Imagen no disponible</span>
+              )}
+            </div>
             <div className="mt-4 flex items-center justify-between">
               <span className="text-2xl">${selected.precio}</span>
               <span className="text-xs uppercase tracking-wider">
                 {selected.estado}
               </span>
             </div>
-            <p className="mt-4 text-sm">
-              {selected.esPropio ? (
-                <strong>Tu publicación</strong>
-              ) : (
-                <>Vende <strong>{selected.usuario.nombre || selected.usuario.email}</strong></>
-              )}
+            <p className="text-sm mt-3 whitespace-pre-wrap" style={{ color: "#6b6b60" }}>
+              {selected.descripcion || "Sin descripción."}
             </p>
+            {selectedProductTags.length > 0 && (
+              <div className={styles.marketplaceTags} aria-label="Información de la prenda">
+                {selectedProductTags.map((item) => (
+                  <span key={item}>{formatProductTag(item)}</span>
+                ))}
+              </div>
+            )}
+            <div className="mt-4">
+              {selected.esPropio ? (
+                <strong className="text-sm">Tu publicación</strong>
+              ) : (
+                <p className="text-sm">
+                  Vende <strong>{selected.usuario.nombre || selected.usuario.email}</strong>
+                </p>
+              )}
+            </div>
             <div className="flex gap-3 mt-5">
               {selected.esPropio ? (
                 <button
@@ -479,90 +618,73 @@ export default function ProductosPage() {
                 </a>
               )}
             </div>
-            <div
-              className="mt-6 pt-5"
-              style={{ borderTop: "1px solid #e8e4de" }}
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">
-                    Reseñas ({selected.cantidadResenas})
-                  </p>
-                  {selected.promedio !== null && (
-                    <span className="text-sm" style={{ color: "#C9A96E" }}>
-                      ★ {selected.promedio.toFixed(1)}
-                    </span>
-                  )}
-                </div>
-                {selected.resenas.length > 0 ? (
-                  <div className="space-y-3 mt-3">
-                    {selected.resenas.map((item) => (
-                      <article
-                        key={item.id}
-                        className="rounded-xl p-3"
-                        style={{ background: "#fff" }}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <strong className="text-sm">
-                            {item.usuario.nombre || item.usuario.email}
-                          </strong>
-                          <span
-                            className="text-sm whitespace-nowrap"
-                            style={{ color: "#C9A96E" }}
-                          >
-                            {"★".repeat(item.puntuacion)}
-                            {"☆".repeat(5 - item.puntuacion)}
-                          </span>
-                        </div>
-                        {item.comentario && (
-                          <p className="text-sm mt-2" style={{ color: "#6b6b60" }}>
-                            {item.comentario}
-                          </p>
-                        )}
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm mt-3" style={{ color: "#9a9a8e" }}>
-                    Todavía no hay reseñas.
-                  </p>
-                )}
-              </div>
-              <p className="text-sm font-medium">Dejá una reseña</p>
-              <div className="flex gap-1 mt-3">
-                {[1, 2, 3, 4, 5].map((score) => (
-                  <button
-                    key={score}
-                    aria-label={`${score} estrellas`}
-                    onClick={() => setReview({ ...review, puntuacion: score })}
-                  >
-                    <Star
-                      size={20}
-                      fill={score <= review.puntuacion ? "#C9A96E" : "none"}
-                      color="#C9A96E"
-                    />
-                  </button>
-                ))}
-              </div>
-              <textarea
-                value={review.comentario}
-                onChange={(e) =>
-                  setReview({ ...review, comentario: e.target.value })
-                }
-                placeholder="Contá tu experiencia"
-                className="w-full mt-3 rounded-xl p-3 text-sm outline-none"
-                rows={3}
-                style={{ border: "1px solid #e8e4de" }}
-              />
+            {selected.esPropio && (
               <button
-                onClick={submitReview}
-                className="mt-3 rounded-xl px-4 py-2 text-sm"
-                style={{ background: "#fff", border: "1px solid #e8e4de" }}
+                type="button"
+                onClick={() => {
+                  setPriceInput(String(selected.precio));
+                  setPriceError("");
+                  setChangePriceOpen(true);
+                }}
+                className="mt-3 w-full rounded-xl py-3 text-sm font-semibold"
+                style={{ border: "1px solid #2C3E2D", color: "#2C3E2D", background: "#fff" }}
               >
-                Guardar reseña
+                Cambiar precio
+              </button>
+            )}
+          </section>
+        </div>
+      )}
+      {changePriceOpen && selected?.esPropio && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-5"
+          style={{ background: "rgba(26,26,26,0.55)" }}
+        >
+          <form
+            onSubmit={changeProductPrice}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="marketplace-change-price-title"
+            className={`${styles.marketplaceConfirmModal} w-full max-w-sm rounded-2xl p-6`}
+          >
+            <h2 id="marketplace-change-price-title" className="text-lg font-medium">Cambiar precio</h2>
+            <label className="mt-4 block text-sm" htmlFor="marketplace-new-price">
+              Nuevo precio
+            </label>
+            <input
+              id="marketplace-new-price"
+              type="number"
+              min="0"
+              step="0.01"
+              required
+              autoFocus
+              value={priceInput}
+              onChange={(event) => setPriceInput(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-[#E5E1D9] bg-white p-3 text-base outline-none focus:border-[#0B493D]"
+            />
+            {priceError && (
+              <p className="mt-3 text-sm" role="alert" style={{ color: "#b85555" }}>{priceError}</p>
+            )}
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                disabled={savingPrice}
+                onClick={() => setChangePriceOpen(false)}
+                className="flex-1 rounded-xl py-3 text-sm disabled:opacity-50"
+                style={{ border: "1px solid #e8e4de", color: "#2C3E2D" }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={savingPrice}
+                className="flex-1 rounded-xl py-3 text-sm disabled:opacity-50"
+                style={{ background: "#2C3E2D", color: "#fff" }}
+              >
+                {savingPrice ? "Guardando..." : "Guardar precio"}
               </button>
             </div>
-          </section>
+          </form>
         </div>
       )}
       {confirmDelete && selected && (
@@ -574,8 +696,7 @@ export default function ProductosPage() {
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="confirm-delete-title"
-            className="w-full max-w-sm rounded-2xl p-6"
-            style={{ background: "#F9F5F0" }}
+            className={`${styles.marketplaceConfirmModal} w-full max-w-sm rounded-2xl p-6`}
           >
             <h2 id="confirm-delete-title" className="text-lg font-medium">
               ¿Estás seguro de eliminar esta publicación?
@@ -606,6 +727,13 @@ export default function ProductosPage() {
             </div>
           </section>
         </div>
+      )}
+      {publishOpen && (
+        <NuevoProductoForm
+          modal
+          onClose={closePublish}
+          onPublished={handleProductPublished}
+        />
       )}
       <BottomNavigation />
     </main>
