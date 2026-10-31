@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { extractToken, verifyToken } from "@/lib/auth";
+import { parseProductTags, serializeProductTags } from "@/lib/product-tags";
 
 async function requireUser(request: NextRequest) {
   const token = extractToken(request);
   return token ? verifyToken(token) : null;
-}
-
-function parseTags(value: unknown) {
-  if (Array.isArray(value)) return JSON.stringify(value.map(String).map((tag) => tag.trim().toLowerCase()).filter(Boolean));
-  if (typeof value !== "string") return null;
-  return JSON.stringify(value.split(",").map((tag) => tag.trim().toLowerCase().replace(/^#/, "")).filter(Boolean));
 }
 
 export async function GET(request: NextRequest) {
@@ -50,7 +45,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
     productos: productos.map(({ favoritos, resenas, compras, ...producto }) => ({
       ...producto,
-      etiquetas: producto.etiquetas ? JSON.parse(producto.etiquetas) : [],
+      etiquetas: parseProductTags(producto.etiquetas),
       favorito: user ? favoritos.some((item) => item.usuarioId === user.id) : false,
       solicitudEstado: compras[0]?.estado || null,
         esPropio: user?.id === producto.usuarioId,
@@ -79,7 +74,7 @@ export async function POST(request: NextRequest) {
         precio: Number(precio),
         estado: estado || "DISPONIBLE",
         imagen: imagen || null,
-        etiquetas: parseTags(etiquetas),
+        etiquetas: serializeProductTags(etiquetas),
         contacto: contacto || null,
         usuarioId: user.id,
       },

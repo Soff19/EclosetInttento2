@@ -314,7 +314,7 @@ export default function ProductosPage() {
             {loadError || message}
           </p>
         )}
-        <div className="grid gap-4 mt-6 sm:grid-cols-2">
+        { <div className="grid gap-4 mt-6 sm:grid-cols-2">
           {productos.map((producto) => (
             <article
               key={producto.id}
@@ -386,7 +386,7 @@ export default function ProductosPage() {
               </div>
             </article>
           ))}
-        </div>
+        </div> }
         {productos.length === 0 && !loadError && (
           <p className="mt-8" style={{ color: "#9a9a8e" }}>
             {activeTab === "mias"

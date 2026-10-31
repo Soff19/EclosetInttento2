@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { extractToken, verifyToken } from "@/lib/auth";
+import { parseProductTags, serializeProductTags } from "@/lib/product-tags";
 
 async function getUser(request: NextRequest) {
   const token = extractToken(request);
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     },
   });
   if (!producto) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
-  return NextResponse.json({ producto: { ...producto, esPropio: user?.id === producto.usuarioId, etiquetas: producto.etiquetas ? JSON.parse(producto.etiquetas) : [] } });
+  return NextResponse.json({ producto: { ...producto, esPropio: user?.id === producto.usuarioId, etiquetas: parseProductTags(producto.etiquetas) } });
 }
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -36,7 +37,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       precio: body.precio !== undefined ? Number(body.precio) : existing.precio,
       estado: body.estado ?? existing.estado,
       imagen: body.imagen ?? existing.imagen,
-      etiquetas: body.etiquetas !== undefined ? JSON.stringify(body.etiquetas) : existing.etiquetas,
+      etiquetas: body.etiquetas !== undefined ? serializeProductTags(body.etiquetas) ?? existing.etiquetas : existing.etiquetas,
       contacto: body.contacto ?? existing.contacto,
     },
   });
