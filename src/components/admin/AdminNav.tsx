@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ClipboardList,
   Home,
+  LogOut,
   Menu,
   Shirt,
   UsersRound,
@@ -28,7 +29,10 @@ function enlaceActivo(pathname: string, href: string) {
 
 export default function AdminNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [cerrandoSesion, setCerrandoSesion] = useState(false);
+  const [errorCierreSesion, setErrorCierreSesion] = useState("");
 
   function renderEnlaces(movil = false) {
     return enlaces.map(({ href, label, Icono }) => {
@@ -56,6 +60,36 @@ export default function AdminNav() {
         </Link>
       );
     });
+  }
+
+  async function cerrarSesion() {
+    setErrorCierreSesion("");
+    setCerrandoSesion(true);
+    try {
+      const respuesta = await fetch("/api/auth/logout", { method: "POST" });
+      if (!respuesta.ok) throw new Error("No se pudo cerrar la sesión. Intentá nuevamente.");
+      localStorage.removeItem("token");
+      router.replace("/");
+    } catch (error) {
+      setErrorCierreSesion(error instanceof Error ? error.message : "No se pudo cerrar la sesión. Intentá nuevamente.");
+    } finally {
+      setCerrandoSesion(false);
+    }
+  }
+
+  function botonCerrarSesion(movil = false) {
+    return (
+      <button
+        type="button"
+        onClick={() => void cerrarSesion()}
+        disabled={cerrandoSesion}
+        className={`flex min-h-11 w-full items-center gap-3 rounded-2xl px-4 text-left text-sm transition hover:bg-[#A8C5A0]/20 disabled:cursor-wait disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D] ${movil ? "mt-1" : "mt-2"}`}
+        style={{ color: "#55564d" }}
+      >
+        <LogOut size={18} aria-hidden="true" />
+        {cerrandoSesion ? "Cerrando sesión..." : "Cerrar sesión"}
+      </button>
+    );
   }
 
   return (
@@ -87,6 +121,7 @@ export default function AdminNav() {
         {menuAbierto && (
           <nav id="admin-nav-movil" aria-label="Navegación de administración" className="mt-3 space-y-1">
             {renderEnlaces(true)}
+            {botonCerrarSesion(true)}
             <Link
               href="/home"
               onClick={() => setMenuAbierto(false)}
@@ -96,6 +131,7 @@ export default function AdminNav() {
               <ArrowLeft size={18} aria-hidden="true" />
               Volver a la app
             </Link>
+            {errorCierreSesion && <p role="alert" className="px-4 pt-2 text-xs text-[#9b4141]">{errorCierreSesion}</p>}
           </nav>
         )}
       </header>
@@ -114,9 +150,13 @@ export default function AdminNav() {
         <nav aria-label="Navegación de administración" className="space-y-1">
           {renderEnlaces()}
         </nav>
+        <div className="mt-auto">
+          {botonCerrarSesion()}
+          {errorCierreSesion && <p role="alert" className="px-4 pt-2 text-xs text-[#9b4141]">{errorCierreSesion}</p>}
+        </div>
         <Link
           href="/home"
-          className="mt-auto flex min-h-11 items-center gap-3 rounded-2xl px-4 text-sm transition hover:bg-[#A8C5A0]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
+          className="mt-2 flex min-h-11 items-center gap-3 rounded-2xl px-4 text-sm transition hover:bg-[#A8C5A0]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
           style={{ color: "#55564d" }}
         >
           <ArrowLeft size={18} aria-hidden="true" />

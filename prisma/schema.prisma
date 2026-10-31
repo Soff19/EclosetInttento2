@@ -12,6 +12,8 @@ model Usuario {
   email         String     @unique
   nombre        String?
   password      String
+  rol           String     @default("USUARIA")
+  estado        String     @default("ACTIVA")
   perfilCompletado Boolean  @default(false)
   preferencias   Json?
   fechaCreacion DateTime   @default(now())
@@ -31,6 +33,7 @@ model Usuario {
 
 model Prenda {
   id            String         @id @default(uuid())
+  fechaCreacion DateTime?
   urlImagen     String         @db.VarChar(500)
   categoria     String
   color         String?
@@ -43,10 +46,12 @@ model Prenda {
   usuario       Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId])
+  @@index([fechaCreacion])
 }
 
 model Outfit {
   id            String         @id @default(uuid())
+  fechaCreacion DateTime?
   nombre        String
   usuarioId     String
   categoria     String?
@@ -56,6 +61,7 @@ model Outfit {
   eventosCalendario EventoCalendario[]
 
   @@index([usuarioId])
+  @@index([fechaCreacion])
 }
 
 model OutfitPrenda {
@@ -81,6 +87,9 @@ model Producto {
   contacto    String?            @db.VarChar(500)
   usuarioId   String
   fechaInicio DateTime           @default(now())
+  motivoEliminacion String?      @db.VarChar(191)
+  explicacionEliminacion String? @db.Text
+  fechaEliminacion DateTime?
   usuario     Usuario            @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   favoritos   FavoritoProducto[]
   compras     Compra[]
@@ -88,6 +97,8 @@ model Producto {
   notificaciones Notificacion[]
 
   @@index([usuarioId])
+  @@index([fechaInicio])
+  @@index([fechaEliminacion])
 }
 
 model FavoritoProducto {
@@ -108,6 +119,7 @@ model Compra {
   productoId String
   estado     String   @default("PENDIENTE")
   creadoEn   DateTime @default(now())
+  fechaConcretada DateTime?
   comprador  Usuario  @relation(fields: [compradorId], references: [id], onDelete: Cascade)
   producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
   resenaVendedor ResenaVendedor?
@@ -115,6 +127,7 @@ model Compra {
   @@unique([compradorId, productoId])
   @@index([productoId])
   @@index([compradorId, estado])
+  @@index([fechaConcretada])
 }
 
 model Notificacion {
@@ -175,10 +188,10 @@ model EventoCalendario {
   outfitId  String?
   urlImagen String?  @db.VarChar(500)
   creadoEn  DateTime @default(now())
-  
+
   usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   outfit    Outfit?  @relation(fields: [outfitId], references: [id], onDelete: SetNull)
-  
+
   @@index([usuarioId])
   @@index([fecha])
 }

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { parseProductTags, serializeProductTags } from "@/lib/product-tags";
 
 async function requireUser(request: NextRequest) {
-  const token = extractToken(request);
-  return token ? verifyToken(token) : null;
+  return getAuthenticatedUser(request);
 }
 
 export async function GET(request: NextRequest) {
@@ -15,15 +14,14 @@ export async function GET(request: NextRequest) {
     const etiqueta = searchParams.get("etiqueta")?.trim().toLowerCase();
     const productId = searchParams.get("id")?.trim();
     const soloMios = searchParams.get("mias") === "true";
-    const token = extractToken(request);
-    const user = token ? verifyToken(token) : null;
+    const user = await getAuthenticatedUser(request);
     if (soloMios && !user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
     const productos = await prisma.producto.findMany({
       where: {
         ...(productId
-          ? { id: productId }
+          ? { id: productId, estado: { not: "ELIMINADA" } }
           : !soloMios
             ? { estado: searchParams.get("estado") || "DISPONIBLE" }
             : {}),

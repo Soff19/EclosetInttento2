@@ -11,6 +11,8 @@ export type AuthUser = {
   email: string;
   nombre: string | null;
   fotoPerfil?: string | null;
+  rol?: string;
+  estado?: string;
 };
 
 export function generateToken(user: AuthUser) {
@@ -28,6 +30,23 @@ export function verifyToken(token: string): AuthUser | null {
   } catch {
     return null;
   }
+}
+
+export async function getAuthenticatedUser(request: NextRequest | Request) {
+  const token = extractToken(request);
+  const decoded = token ? verifyToken(token) : null;
+  if (!decoded?.id) return null;
+
+  const user = await prisma.usuario.findUnique({
+    where: { id: decoded.id },
+    select: { id: true, email: true, nombre: true, fotoPerfil: true, rol: true, estado: true },
+  });
+  return user?.estado === "ACTIVA" ? user : null;
+}
+
+export async function getAdminUser(request: NextRequest | Request) {
+  const user = await getAuthenticatedUser(request);
+  return user?.rol === "ADMIN" ? user : null;
 }
 
 export function extractToken(request: NextRequest | Request) {
@@ -62,7 +81,9 @@ export async function loginUser(email: string, password: string) {
   }
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) throw new Error("Credenciales incorrectas");
-  const { password: _, ...rest } = user;
+  if (user.estado !== "ACTIVA") throw new Error("Cuenta suspendida");
+  const { password: storedPassword, ...rest } = user;
+  void storedPassword;
   return rest;
 }
 
@@ -102,6 +123,8 @@ export async function getUserById(id: string) {
       preferencias: true,
       fotoPerfil: true,
       fechaCreacion: true,
+      rol: true,
+      estado: true,
       _count: { select: { prendas: true, outfits: true, productos: true } },
     },
   });

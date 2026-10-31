@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { extractToken, getAuthenticatedUser } from "@/lib/auth";
 
 async function requireUser(request: NextRequest) {
   const token = extractToken(request);
   if (!token) return null;
-  return verifyToken(token);
+  return getAuthenticatedUser(request);
 }
 
 export async function GET(request: NextRequest) {
@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
 
     const outfit = await prisma.outfit.create({
       data: {
+        fechaCreacion: new Date(),
         nombre: nombreNormalizado,
         categoria: typeof categoria === "string" && categoria.trim() ? categoria.trim() : null,
         descripcion: descripcion || null,

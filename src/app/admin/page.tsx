@@ -8,17 +8,16 @@ import {
   ClipboardList,
   Clock3,
   Shirt,
-  ShieldCheck,
   Trash2,
   UsersRound,
   UserRoundPlus,
 } from "lucide-react";
-import { actividadReciente, resumenAdmin } from "./datosResumen";
+import { resumenAdmin, type ActividadAdmin } from "./datosResumen";
 
 const iconosResumen = {
   usuarias: UsersRound,
   activas: Shirt,
-  reportes: ClipboardList,
+  solicitudes: ClipboardList,
   eliminadas: Trash2,
 } as const;
 
@@ -40,7 +39,7 @@ const accesos = [
   {
     href: "/admin/reportes",
     titulo: "Reportes",
-    descripcion: "Consultá los informes y atendé los reportes.",
+    descripcion: "Consultá métricas y descargá informes del período.",
     Icono: ClipboardList,
     fondo: "rgba(168,197,160,0.28)",
   },
@@ -48,24 +47,73 @@ const accesos = [
 
 const iconosActividad = {
   prenda: Shirt,
-  reporte: ShieldCheck,
+  solicitud: ClipboardList,
   usuaria: UserRoundPlus,
 } as const;
 
 export default function AdminDashboard() {
+  const [resumen, setResumen] = useState(() => Object.fromEntries(resumenAdmin.map(({ id }) => [id, 0])) as Record<(typeof resumenAdmin)[number]["id"], number>);
+  const [actividades, setActividades] = useState<ActividadAdmin[]>([]);
+  const [nombreAdmin, setNombreAdmin] = useState("admin");
+  const [error, setError] = useState("");
   const [contadores, setContadores] = useState<number[]>(() => resumenAdmin.map(() => 0));
+
+  useEffect(() => {
+    let activo = true;
+    async function cargarPerfilAdmin() {
+      try {
+        const respuesta = await fetch("/api/auth/me");
+        const datos = await respuesta.json() as {
+          user?: { nombre?: string | null; email?: string };
+          error?: string;
+        };
+        if (!respuesta.ok || !datos.user) {
+          throw new Error(datos.error || "No se pudo cargar el perfil de administración.");
+        }
+        if (activo) {
+          setNombreAdmin(datos.user.nombre?.trim() || datos.user.email?.split("@")[0] || "admin");
+        }
+      } catch (error) {
+        if (activo) setError(error instanceof Error ? error.message : "No se pudo cargar el perfil de administración.");
+      }
+    }
+
+    async function cargarResumen() {
+      try {
+        const respuesta = await fetch("/api/admin/dashboard");
+        const datos = await respuesta.json() as {
+          resumen?: typeof resumen;
+          actividades?: ActividadAdmin[];
+          error?: string;
+        };
+        if (!respuesta.ok || !datos.resumen) {
+          throw new Error(datos.error || "No se pudo cargar el resumen de administración.");
+        }
+        if (activo) {
+          setResumen(datos.resumen);
+          setActividades(datos.actividades || []);
+        }
+      } catch (error) {
+        if (activo) setError(error instanceof Error ? error.message : "No se pudo cargar el resumen de administración.");
+      }
+    }
+    void cargarPerfilAdmin();
+    void cargarResumen();
+    return () => { activo = false; };
+  }, []);
 
   useEffect(() => {
     const duracion = 900;
     let frameId = 0;
     let inicio: number | null = null;
+    const valores = resumenAdmin.map(({ id }) => resumen[id]);
 
     function animarContadores(marcaTiempo: number) {
       if (inicio === null) inicio = marcaTiempo;
       const progreso = Math.min((marcaTiempo - inicio) / duracion, 1);
       const suavizado = 1 - (1 - progreso) ** 3;
 
-      setContadores(resumenAdmin.map(({ valor }) => Math.round(valor * suavizado)));
+      setContadores(valores.map((valor) => Math.round(valor * suavizado)));
 
       if (progreso < 1) {
         frameId = window.requestAnimationFrame(animarContadores);
@@ -74,7 +122,7 @@ export default function AdminDashboard() {
 
     frameId = window.requestAnimationFrame(animarContadores);
     return () => window.cancelAnimationFrame(frameId);
-  }, []);
+  }, [resumen]);
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-7 sm:px-6 sm:py-10 lg:px-8" style={{ background: "#F9F5F0" }}>
@@ -82,13 +130,14 @@ export default function AdminDashboard() {
       <div className="pointer-events-none absolute -right-20 top-80 h-72 w-72 rounded-full opacity-15 blur-3xl" style={{ background: "#C9A96E" }} />
 
       <div className="relative mx-auto max-w-7xl">
+        {error && <p role="alert" className="mb-5 rounded-xl bg-[#fff0f0] px-4 py-3 text-sm text-[#9b4141]">{error}</p>}
         <header className="dashboard-enter mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: "#6b6b60" }}>
               ECloset · Administración
             </p>
             <h1 className="mt-1 text-3xl font-light tracking-[-0.03em] sm:text-4xl" style={{ color: "#2C3E2D" }}>
-              Hola, admin <span aria-hidden="true">✨</span>
+              Hola, {nombreAdmin} <span aria-hidden="true">✨</span>
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-6" style={{ color: "#6b6b60" }}>
               Este es el resumen de lo que está pasando en tu comunidad.
@@ -119,7 +168,7 @@ export default function AdminDashboard() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs leading-5" style={{ color: "#6b6b60" }}>{dato.titulo}</p>
-                    <p className="mt-2 text-3xl font-light tabular-nums tracking-tight" style={{ color: "#2C3E2D" }} aria-label={`${dato.valor}`}>
+                    <p className="mt-2 text-3xl font-light tabular-nums tracking-tight" style={{ color: "#2C3E2D" }} aria-label={`${resumen[dato.id]}`}>
                       {contadores[index].toLocaleString("es-AR")}
                     </p>
                     <p className="mt-1 text-[11px]" style={{ color: "#9a9a8e" }}>{dato.detalle}</p>
@@ -188,7 +237,7 @@ export default function AdminDashboard() {
             </span>
           </div>
           <ul className="divide-y" style={{ borderColor: "#eee9e1" }}>
-            {actividadReciente.map((actividad) => {
+            {actividades.map((actividad) => {
               const Icono = iconosActividad[actividad.tipo];
               return (
                 <li key={actividad.id} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1">

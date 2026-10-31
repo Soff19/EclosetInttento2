@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { createMarketplaceNotification } from "@/lib/notifications";
 import { sendPurchaseRequestEmail } from "@/lib/mailer";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const token = extractToken(request);
-  const user = token ? verifyToken(token) : null;
+  const user = await getAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Iniciá sesión para comprar" }, { status: 401 });
   const buyerId = user.id;
   const { id: productoId } = await context.params;

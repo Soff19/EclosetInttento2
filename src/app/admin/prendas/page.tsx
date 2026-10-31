@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Search, Shirt, Trash2 } from "lucide-react";
 import ModalMotivoPrenda from "@/components/admin/ModalMotivoPrenda";
 import {
-  publicacionesEjemplo,
   type PublicacionMarketplace,
 } from "./datosEjemplo";
 
@@ -15,38 +14,58 @@ type EliminacionPublicacion = {
   fechaEliminacion: string;
 };
 
-const categorias = [...new Set(publicacionesEjemplo.map(({ categoria }) => categoria))].sort();
-const vendedoras = [...new Set(publicacionesEjemplo.map(({ vendedora }) => vendedora))].sort();
-
-function obtenerHistorialInicial(): EliminacionPublicacion[] {
-  return publicacionesEjemplo.flatMap((publicacion) =>
-    publicacion.estado === "ELIMINADA" &&
-    publicacion.motivoEliminacion &&
-    publicacion.explicacionEliminacion &&
-    publicacion.fechaEliminacion
-      ? [{
-          publicacion,
-          motivo: publicacion.motivoEliminacion,
-          explicacion: publicacion.explicacionEliminacion,
-          fechaEliminacion: publicacion.fechaEliminacion,
-        }]
-      : [],
-  );
-}
-
 export default function AdminMarketplacePage() {
-  const [publicaciones, setPublicaciones] = useState(() =>
-    publicacionesEjemplo.filter((publicacion) => publicacion.estado === "ACTIVA"),
-  );
-  const [historial, setHistorial] = useState(obtenerHistorialInicial);
+  const [publicaciones, setPublicaciones] = useState<PublicacionMarketplace[]>([]);
+  const [historial, setHistorial] = useState<EliminacionPublicacion[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [vendedoraSeleccionada, setVendedoraSeleccionada] = useState("");
   const [publicacionSeleccionada, setPublicacionSeleccionada] =
     useState<PublicacionMarketplace | null>(null);
   const [historialAbierto, setHistorialAbierto] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [errorModal, setErrorModal] = useState("");
   const botonQueAbrioRef = useRef<HTMLButtonElement | null>(null);
   const botonHistorialRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    let activo = true;
+    async function cargarPublicaciones() {
+      try {
+        const respuesta = await fetch("/api/admin/productos");
+        const datos = await respuesta.json() as {
+          publicaciones?: Omit<PublicacionMarketplace, "estado">[];
+          historial?: Omit<PublicacionMarketplace, "estado">[];
+          error?: string;
+        };
+        if (!respuesta.ok) throw new Error(datos.error || "No se pudieron cargar las publicaciones.");
+        if (activo) {
+          setPublicaciones((datos.publicaciones || []).map((producto) => ({ ...producto, estado: "ACTIVA" })));
+          setHistorial((datos.historial || []).flatMap((producto) =>
+            producto.motivoEliminacion && producto.explicacionEliminacion && producto.fechaEliminacion
+              ? [{
+                  publicacion: { ...producto, estado: "ELIMINADA" },
+                  motivo: producto.motivoEliminacion,
+                  explicacion: producto.explicacionEliminacion,
+                  fechaEliminacion: producto.fechaEliminacion,
+                }]
+              : [],
+          ));
+        }
+      } catch (error) {
+        if (activo) setError(error instanceof Error ? error.message : "No se pudieron cargar las publicaciones.");
+      } finally {
+        if (activo) setCargando(false);
+      }
+    }
+    void cargarPublicaciones();
+    return () => { activo = false; };
+  }, []);
+
+  const categorias = [...new Set(publicaciones.map(({ categoria }) => categoria))].sort();
+  const vendedoras = [...new Set(publicaciones.map(({ vendedora }) => vendedora))].sort();
 
   const publicacionesFiltradas = publicaciones.filter((publicacion) => {
     const coincideNombre = publicacion.titulo
@@ -87,7 +106,7 @@ export default function AdminMarketplacePage() {
     });
   }
 
-  function confirmarEliminacion(motivo: string, explicacion: string) {
+  async function confirmarEliminacion(motivo: string, explicacion: string) {
     if (!publicacionSeleccionada) return;
     const fechaEliminacion = new Date().toISOString();
     const publicacionEliminada: PublicacionMarketplace = {
@@ -98,19 +117,24 @@ export default function AdminMarketplacePage() {
       fechaEliminacion,
     };
 
-    setHistorial((actual) => [
-      {
-        publicacion: publicacionEliminada,
-        motivo,
-        explicacion,
-        fechaEliminacion,
-      },
-      ...actual,
-    ]);
-    setPublicaciones((actuales) =>
-      actuales.filter((publicacion) => publicacion.id !== publicacionSeleccionada.id),
-    );
-    cerrarModal();
+    setErrorModal("");
+    setGuardando(true);
+    try {
+      const respuesta = await fetch(`/api/admin/productos/${encodeURIComponent(publicacionSeleccionada.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ motivo, explicacion }),
+      });
+      const datos = await respuesta.json() as { error?: string };
+      if (!respuesta.ok) throw new Error(datos.error || "No se pudo eliminar la publicación.");
+      setHistorial((actual) => [{ publicacion: publicacionEliminada, motivo, explicacion, fechaEliminacion }, ...actual]);
+      setPublicaciones((actuales) => actuales.filter((publicacion) => publicacion.id !== publicacionSeleccionada.id));
+      cerrarModal();
+    } catch (error) {
+      setErrorModal(error instanceof Error ? error.message : "No se pudo eliminar la publicación.");
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
@@ -127,6 +151,9 @@ export default function AdminMarketplacePage() {
             Revisá las publicaciones activas y eliminá las que incumplan las normas de la comunidad.
           </p>
         </header>
+
+        {error && <p role="alert" className="mb-5 rounded-xl bg-[#fff0f0] px-4 py-3 text-sm text-[#9b4141]">{error}</p>}
+        {cargando && <p role="status" className="mb-5 text-sm" style={{ color: "#6b6b60" }}>Cargando publicaciones...</p>}
 
         <section
           aria-label="Resumen de publicaciones"
@@ -271,7 +298,7 @@ export default function AdminMarketplacePage() {
           )}
         </section>
 
-        {publicacionesFiltradas.length === 0 ? (
+        {!cargando && publicacionesFiltradas.length === 0 ? (
           <div
             className="rounded-[24px] px-5 py-14 text-center"
             style={{ background: "rgba(255,255,255,0.82)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}
@@ -289,7 +316,7 @@ export default function AdminMarketplacePage() {
               Probá con otro nombre, categoría o usuaria.
             </p>
           </div>
-        ) : (
+        ) : publicacionesFiltradas.length > 0 && (
           <section aria-label="Publicaciones activas" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {publicacionesFiltradas.map((publicacion) => (
               <article
@@ -370,6 +397,8 @@ export default function AdminMarketplacePage() {
           publicacion={publicacionSeleccionada}
           onClose={cerrarModal}
           onConfirm={confirmarEliminacion}
+          error={errorModal}
+          saving={guardando}
         />
       )}
     </main>

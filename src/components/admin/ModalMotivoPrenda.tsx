@@ -8,12 +8,16 @@ type ModalMotivoPrendaProps = {
   publicacion: PublicacionMarketplace;
   onClose: () => void;
   onConfirm: (motivo: string, explicacion: string) => void;
+  error?: string;
+  saving?: boolean;
 };
 
 export default function ModalMotivoPrenda({
   publicacion,
   onClose,
   onConfirm,
+  error = "",
+  saving = false,
 }: ModalMotivoPrendaProps) {
   const [motivo, setMotivo] = useState("");
   const [explicacion, setExplicacion] = useState("");
@@ -115,6 +119,7 @@ export default function ModalMotivoPrenda({
         </p>
 
         <form onSubmit={confirmar} className="mt-5">
+          {error && <p role="alert" className="mb-4 rounded-xl bg-[#fff0f0] px-3 py-2 text-sm text-[#9b4141]">{error}</p>}
           <div>
             <label
               htmlFor="motivo-decision-publicacion"
@@ -192,6 +197,7 @@ export default function ModalMotivoPrenda({
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
+              disabled={saving}
               onClick={onClose}
               className="min-h-11 rounded-xl border px-4 text-sm font-medium transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
               style={{ borderColor: "#d8d3ca", color: "#2C3E2D" }}
@@ -200,11 +206,11 @@ export default function ModalMotivoPrenda({
             </button>
             <button
               type="submit"
-              disabled={!formularioValido}
+              disabled={!formularioValido || saving}
               className="min-h-11 rounded-xl px-4 text-sm font-medium text-white transition enabled:hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
               style={{ background: "#9b4141" }}
             >
-              Confirmar eliminación
+              {saving ? "Eliminando..." : "Confirmar eliminación"}
             </button>
           </div>
         </form>

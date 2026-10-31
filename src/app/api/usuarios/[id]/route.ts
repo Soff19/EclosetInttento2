@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id: sellerId } = await context.params;
   try {
-    const token = extractToken(request);
-    const currentUser = token ? verifyToken(token) : null;
+    const currentUser = await getAuthenticatedUser(request);
     const [seller, reviews, aggregate, reviewablePurchases] = await Promise.all([
       prisma.usuario.findUnique({
         where: { id: sellerId },

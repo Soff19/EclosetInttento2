@@ -6,13 +6,13 @@ import {
   Eye,
   Search,
   Shield,
+  Trash2,
   UserRound,
   UserRoundCheck,
   UserRoundX,
   X,
 } from "lucide-react";
 import {
-  usuariasEjemplo,
   type EstadoUsuaria,
   type RolUsuaria,
   type UsuariaAdmin,
@@ -146,7 +146,7 @@ function DetalleUsuaria({
           </div>
         </dl>
         <p className="mt-4 text-xs" style={{ color: "#77776d" }}>
-          Los cambios de esta pantalla son demostrativos y no se guardan.
+          Los cambios se guardan en la base de datos.
         </p>
       </section>
     </div>
@@ -154,11 +154,35 @@ function DetalleUsuaria({
 }
 
 export default function AdminUsuariosPage() {
-  const [usuarias, setUsuarias] = useState(usuariasEjemplo);
+  const [usuarias, setUsuarias] = useState<UsuariaAdmin[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("TODOS");
   const [filtroRol, setFiltroRol] = useState<FiltroRol>("TODOS");
   const [detalle, setDetalle] = useState<UsuariaAdmin | null>(null);
+  const [usuariaAEliminar, setUsuariaAEliminar] = useState<UsuariaAdmin | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminacion, setErrorEliminacion] = useState("");
+
+  useEffect(() => {
+    let activo = true;
+    async function cargarUsuarias() {
+      try {
+        const respuesta = await fetch("/api/admin/usuarios");
+        const datos = await respuesta.json() as { usuarios?: UsuariaAdmin[]; error?: string };
+        if (!respuesta.ok) throw new Error(datos.error || "No se pudieron cargar las usuarias.");
+        if (activo) setUsuarias(datos.usuarios || []);
+      } catch (error) {
+        if (activo) setError(error instanceof Error ? error.message : "No se pudieron cargar las usuarias.");
+      } finally {
+        if (activo) setCargando(false);
+      }
+    }
+    void cargarUsuarias();
+    return () => { activo = false; };
+  }, []);
 
   const totalActivas = usuarias.filter((usuaria) => usuaria.estado === "ACTIVA").length;
   const totalSuspendidas = usuarias.filter((usuaria) => usuaria.estado === "SUSPENDIDA").length;
@@ -172,25 +196,64 @@ export default function AdminUsuariosPage() {
     return coincideBusqueda && coincideEstado && coincideRol;
   });
 
-  function actualizarUsuaria(id: string, cambios: Partial<UsuariaAdmin>) {
-    setUsuarias((actuales) =>
-      actuales.map((usuaria) => (usuaria.id === id ? { ...usuaria, ...cambios } : usuaria)),
-    );
-    setDetalle((actual) => (actual?.id === id ? { ...actual, ...cambios } : actual));
+  async function actualizarUsuaria(id: string, cambios: { rol?: RolUsuaria; estado?: EstadoUsuaria }) {
+    setError("");
+    setGuardandoId(id);
+    try {
+      const respuesta = await fetch(`/api/admin/usuarios/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cambios),
+      });
+      const datos = await respuesta.json() as { usuario?: UsuariaAdmin; error?: string };
+      if (!respuesta.ok || !datos.usuario) {
+        throw new Error(datos.error || "No se pudo actualizar la usuaria.");
+      }
+      const usuariaActualizada = datos.usuario;
+      setUsuarias((actuales) =>
+        actuales.map((usuaria) => usuaria.id === id ? usuariaActualizada : usuaria),
+      );
+      setDetalle((actual) => actual?.id === id ? usuariaActualizada : actual);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "No se pudo actualizar la usuaria.");
+    } finally {
+      setGuardandoId(null);
+    }
   }
 
-  function alternarEstado(usuaria: UsuariaAdmin) {
+  async function alternarEstado(usuaria: UsuariaAdmin) {
     if (!confirmarCambio(usuaria, "estado")) return;
-    actualizarUsuaria(usuaria.id, {
+    await actualizarUsuaria(usuaria.id, {
       estado: usuaria.estado === "ACTIVA" ? "SUSPENDIDA" : "ACTIVA",
     });
   }
 
-  function alternarRol(usuaria: UsuariaAdmin) {
+  async function alternarRol(usuaria: UsuariaAdmin) {
     if (!confirmarCambio(usuaria, "rol")) return;
-    actualizarUsuaria(usuaria.id, {
+    await actualizarUsuaria(usuaria.id, {
       rol: usuaria.rol === "ADMIN" ? "USUARIA" : "ADMIN",
     });
+  }
+
+  async function eliminarUsuaria() {
+    if (!usuariaAEliminar) return;
+    setErrorEliminacion("");
+    setEliminando(true);
+    try {
+      const respuesta = await fetch(`/api/admin/usuarios/${encodeURIComponent(usuariaAEliminar.id)}`, {
+        method: "DELETE",
+      });
+      const datos = await respuesta.json() as { error?: string };
+      if (!respuesta.ok) throw new Error(datos.error || "No se pudo eliminar la cuenta.");
+
+      setUsuarias((actuales) => actuales.filter((usuaria) => usuaria.id !== usuariaAEliminar.id));
+      setDetalle((actual) => actual?.id === usuariaAEliminar.id ? null : actual);
+      setUsuariaAEliminar(null);
+    } catch (error) {
+      setErrorEliminacion(error instanceof Error ? error.message : "No se pudo eliminar la cuenta.");
+    } finally {
+      setEliminando(false);
+    }
   }
 
   const campoClase =
@@ -208,9 +271,12 @@ export default function AdminUsuariosPage() {
             Gestionar usuarias
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6" style={{ color: "#6b6b60" }}>
-            Consultá perfiles y administrá su acceso y rol. Los cambios de esta vista son solo una demostración.
+            Consultá perfiles y administrá su acceso y rol. Los cambios se guardan en la base de datos.
           </p>
         </header>
+
+        {error && <p role="alert" className="mb-5 rounded-xl bg-[#fff0f0] px-4 py-3 text-sm text-[#9b4141]">{error}</p>}
+        {cargando && <p role="status" className="mb-5 text-sm" style={{ color: "#6b6b60" }}>Cargando usuarias...</p>}
 
         <section aria-label="Resumen de usuarias" className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
@@ -293,7 +359,7 @@ export default function AdminUsuariosPage() {
           </p>
         </section>
 
-        {usuariasFiltradas.length === 0 ? (
+        {!cargando && usuariasFiltradas.length === 0 ? (
           <section
             className="rounded-[24px] px-5 py-14 text-center"
             style={{ background: "rgba(255,255,255,0.82)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}
@@ -306,7 +372,7 @@ export default function AdminUsuariosPage() {
               Probá cambiar la búsqueda o seleccionar otros filtros.
             </p>
           </section>
-        ) : (
+        ) : usuariasFiltradas.length > 0 && (
           <section
             aria-label="Lista de usuarias"
             className="overflow-hidden rounded-[24px]"
@@ -356,6 +422,11 @@ export default function AdminUsuariosPage() {
                           onDetalle={() => setDetalle(usuaria)}
                           onEstado={() => alternarEstado(usuaria)}
                           onRol={() => alternarRol(usuaria)}
+                          onEliminar={() => {
+                            setErrorEliminacion("");
+                            setUsuariaAEliminar(usuaria);
+                          }}
+                          deshabilitada={guardandoId === usuaria.id}
                           compactas
                         />
                       </td>
@@ -393,6 +464,11 @@ export default function AdminUsuariosPage() {
                     onDetalle={() => setDetalle(usuaria)}
                     onEstado={() => alternarEstado(usuaria)}
                     onRol={() => alternarRol(usuaria)}
+                    onEliminar={() => {
+                      setErrorEliminacion("");
+                      setUsuariaAEliminar(usuaria);
+                    }}
+                    deshabilitada={guardandoId === usuaria.id}
                   />
                 </li>
               ))}
@@ -402,6 +478,59 @@ export default function AdminUsuariosPage() {
       </div>
 
       {detalle && <DetalleUsuaria usuaria={detalle} onCerrar={() => setDetalle(null)} />}
+      {usuariaAEliminar && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-4"
+          onMouseDown={(event) => {
+            if (!eliminando && event.target === event.currentTarget) setUsuariaAEliminar(null);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && !eliminando) setUsuariaAEliminar(null);
+          }}
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="eliminar-usuaria-titulo"
+            aria-describedby="eliminar-usuaria-descripcion"
+            className="w-full max-w-md rounded-[24px] p-5 shadow-2xl sm:p-7"
+            style={{ background: "#F9F5F0" }}
+          >
+            <h2 id="eliminar-usuaria-titulo" className="text-xl font-medium" style={{ color: "#2C3E2D" }}>
+              ¿Eliminar la cuenta de {usuariaAEliminar.nombre}?
+            </h2>
+            <p id="eliminar-usuaria-descripcion" className="mt-3 text-sm leading-6" style={{ color: "#6b6b60" }}>
+              Esta acción es permanente. También se eliminarán sus prendas, outfits, publicaciones, solicitudes de compra y demás datos asociados.
+            </p>
+            {errorEliminacion && (
+              <p role="alert" className="mt-4 rounded-xl bg-[#fff0f0] px-3 py-2 text-sm text-[#9b4141]">
+                {errorEliminacion}
+              </p>
+            )}
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={eliminando}
+                onClick={() => setUsuariaAEliminar(null)}
+                className="min-h-11 rounded-xl border px-4 text-sm font-medium disabled:opacity-50"
+                style={{ borderColor: "#d8d3ca", color: "#2C3E2D" }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={eliminando}
+                onClick={eliminarUsuaria}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium text-white disabled:opacity-50"
+                style={{ background: "#b85555" }}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                {eliminando ? "Eliminando..." : "Eliminar cuenta"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
@@ -411,12 +540,16 @@ function AccionesUsuaria({
   onDetalle,
   onEstado,
   onRol,
+  onEliminar,
+  deshabilitada,
   compactas = false,
 }: {
   usuaria: UsuariaAdmin;
   onDetalle: () => void;
   onEstado: () => void;
   onRol: () => void;
+  onEliminar: () => void;
+  deshabilitada: boolean;
   compactas?: boolean;
 }) {
   const botonClase =
@@ -426,6 +559,7 @@ function AccionesUsuaria({
     <div className={`flex gap-2 ${compactas ? "justify-end" : "mt-4 flex-wrap"}`}>
       <button
         type="button"
+        disabled={deshabilitada}
         onClick={onDetalle}
         aria-label={`Ver detalle de ${usuaria.nombre}`}
         className={botonClase}
@@ -436,6 +570,7 @@ function AccionesUsuaria({
       </button>
       <button
         type="button"
+        disabled={deshabilitada}
         onClick={onEstado}
         aria-label={`${usuaria.estado === "ACTIVA" ? "Suspender" : "Reactivar"} a ${usuaria.nombre}`}
         className={botonClase}
@@ -446,6 +581,7 @@ function AccionesUsuaria({
       </button>
       <button
         type="button"
+        disabled={deshabilitada}
         onClick={onRol}
         aria-label={`Cambiar rol de ${usuaria.nombre} a ${usuaria.rol === "ADMIN" ? "usuaria" : "administradora"}`}
         className={botonClase}
@@ -453,6 +589,17 @@ function AccionesUsuaria({
       >
         <Shield size={15} aria-hidden="true" />
         {usuaria.rol === "ADMIN" ? "Hacer usuaria" : "Hacer admin"}
+      </button>
+      <button
+        type="button"
+        disabled={deshabilitada}
+        onClick={onEliminar}
+        aria-label={`Eliminar cuenta de ${usuaria.nombre}`}
+        className={botonClase}
+        style={{ borderColor: "#e8caca", color: "#8f3535" }}
+      >
+        <Trash2 size={15} aria-hidden="true" />
+        Eliminar
       </button>
     </div>
   );

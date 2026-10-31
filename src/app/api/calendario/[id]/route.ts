@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { extractToken, getAuthenticatedUser } from "@/lib/auth";
 
 async function requireUser(request: NextRequest) {
   const token = extractToken(request);
   if (!token) return null;
-  return verifyToken(token);
+  return getAuthenticatedUser(request);
 }
 
 export async function DELETE(

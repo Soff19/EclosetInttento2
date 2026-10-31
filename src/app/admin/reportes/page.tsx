@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -13,8 +13,7 @@ import {
 } from "lucide-react";
 import {
   etiquetasPeriodo,
-  informesEjemplo,
-  type ActividadDestacada,
+  type InformeEjemplo,
   type PeriodoInforme,
   type PuntoEvolucion,
 } from "./datosEjemplo";
@@ -33,6 +32,21 @@ const opcionesPeriodo: { value: PeriodoInforme; label: string }[] = [
 ];
 
 const formatoNumero = new Intl.NumberFormat("es-AR");
+const informeVacio: InformeEjemplo = {
+  indicadores: {
+    usuariasNuevas: 0,
+    variacionUsuarias: 0,
+    prendasSubidas: 0,
+    variacionPrendas: 0,
+    outfitsCreados: 0,
+    variacionOutfits: 0,
+    comprasRealizadas: 0,
+    variacionCompras: 0,
+  },
+  evolucion: [],
+  categorias: [],
+  destacadas: [],
+};
 
 function GraficoEvolucion({ puntos }: { puntos: PuntoEvolucion[] }) {
   if (puntos.length === 0) {
@@ -115,8 +129,7 @@ function csvCelda(valor: string | number) {
   return `"${String(valor).replaceAll('"', '""')}"`;
 }
 
-function descargarCSV(periodo: PeriodoInforme, actividades: ActividadDestacada[]) {
-  const informe = informesEjemplo[periodo];
+function descargarCSV(periodo: PeriodoInforme, informe: InformeEjemplo) {
   const filas: (string | number)[][] = [
     ["Periodo", etiquetasPeriodo[periodo]],
     [],
@@ -138,7 +151,7 @@ function descargarCSV(periodo: PeriodoInforme, actividades: ActividadDestacada[]
     ]),
     [],
     ["Actividad destacada", "Tipo", "Categoria", "Favoritos"],
-    ...actividades.map((actividad) => [
+    ...informe.destacadas.map((actividad) => [
       actividad.nombre,
       actividad.tipo,
       actividad.categoria,
@@ -160,7 +173,32 @@ function descargarCSV(periodo: PeriodoInforme, actividades: ActividadDestacada[]
 
 export default function AdminReportesPage() {
   const [periodo, setPeriodo] = useState<PeriodoInforme>("30dias");
-  const informe = informesEjemplo[periodo];
+  const [informe, setInforme] = useState<InformeEjemplo>(informeVacio);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let activo = true;
+    async function cargarInforme() {
+      setCargando(true);
+      setError("");
+      try {
+        const respuesta = await fetch(`/api/admin/reportes?periodo=${periodo}`);
+        const datos = await respuesta.json() as { informe?: InformeEjemplo; error?: string };
+        if (!respuesta.ok || !datos.informe) {
+          throw new Error(datos.error || "No se pudo generar el informe.");
+        }
+        if (activo) setInforme(datos.informe);
+      } catch (error) {
+        if (activo) setError(error instanceof Error ? error.message : "No se pudo generar el informe.");
+      } finally {
+        if (activo) setCargando(false);
+      }
+    }
+    void cargarInforme();
+    return () => { activo = false; };
+  }, [periodo]);
+
   const tieneDatos =
     informe.evolucion.length > 0 ||
     informe.categorias.length > 0 ||
@@ -201,7 +239,8 @@ export default function AdminReportesPage() {
             </div>
             <button
               type="button"
-              onClick={() => descargarCSV(periodo, informe.destacadas)}
+              onClick={() => descargarCSV(periodo, informe)}
+              disabled={cargando || Boolean(error)}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2C3E2D]"
               style={{ background: "#2C3E2D", color: "#F9F5F0" }}
             >
@@ -211,7 +250,10 @@ export default function AdminReportesPage() {
           </div>
         </header>
 
-        {!tieneDatos ? (
+        {error && <p role="alert" className="mb-5 rounded-xl bg-[#fff0f0] px-4 py-3 text-sm text-[#9b4141]">{error}</p>}
+        {cargando ? (
+          <p role="status" className="py-12 text-center text-sm" style={{ color: "#6b6b60" }}>Generando informe...</p>
+        ) : !tieneDatos ? (
           <section className="report-enter rounded-[24px] px-5 py-14 text-center" style={{ background: "rgba(255,255,255,0.84)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}>
             <h2 className="text-lg font-light" style={{ color: "#2C3E2D" }}>Todavía no hay datos para este período</h2>
             <p className="mt-1 text-sm" style={{ color: "#6b6b60" }}>Elegí otro rango para consultar la actividad disponible.</p>

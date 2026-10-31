@@ -20,9 +20,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
 
         const data = (await respuesta.json()) as {
-          user?: { email?: string | null } | null;
+          user?: { rol?: string | null } | null;
         };
-        if (data.user?.email?.endsWith("@ecloset.com")) {
+        if (data.user?.rol === "ADMIN") {
           if (activo) setVerificado(true);
         } else {
           router.push("/home");

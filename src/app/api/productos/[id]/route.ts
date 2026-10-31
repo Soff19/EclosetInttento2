@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { parseProductTags, serializeProductTags } from "@/lib/product-tags";
 
 async function getUser(request: NextRequest) {
-  const token = extractToken(request);
-  return token ? verifyToken(token) : null;
+  return getAuthenticatedUser(request);
 }
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -18,7 +17,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       resenas: { include: { usuario: { select: { nombre: true } } }, orderBy: { creadoEn: "desc" } },
     },
   });
-  if (!producto) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+  if (!producto || producto.estado === "ELIMINADA") {
+    return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+  }
   return NextResponse.json({ producto: { ...producto, esPropio: user?.id === producto.usuarioId, etiquetas: parseProductTags(producto.etiquetas) } });
 }
 
@@ -28,6 +29,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
   const { id } = await context.params;
   const existing = await prisma.producto.findFirst({ where: { id, usuarioId: user.id } });
   if (!existing) return NextResponse.json({ error: "Publicación no encontrada" }, { status: 404 });
+  if (existing.estado === "ELIMINADA") {
+    return NextResponse.json({ error: "La publicación fue eliminada por administración." }, { status: 409 });
+  }
   const body = await request.json();
   const producto = await prisma.producto.update({
     where: { id },

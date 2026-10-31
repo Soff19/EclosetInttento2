@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 class PurchaseCompletionConflict extends Error {}
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const token = extractToken(request);
-  const user = token ? verifyToken(token) : null;
+  const user = await getAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const { id: compraId } = await context.params;
@@ -28,7 +27,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
       const changed = await tx.compra.updateMany({
         where: { id: compraId, compradorId: user.id, estado: "ACEPTADA" },
-        data: { estado: "CONCRETADA" },
+        data: { estado: "CONCRETADA", fechaConcretada: new Date() },
       });
       if (changed.count !== 1) throw new PurchaseCompletionConflict();
 

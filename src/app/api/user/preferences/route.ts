@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const token = extractToken(request);
-    if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    const auth = verifyToken(token);
+    const auth = await getAuthenticatedUser(request);
     if (!auth) return NextResponse.json({ error: "Token inválido" }, { status: 401 });
 
     const body = await request.json();
@@ -26,9 +24,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const token = extractToken(request);
-    if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    const auth = verifyToken(token);
+    const auth = await getAuthenticatedUser(request);
     if (!auth) return NextResponse.json({ error: "Token inválido" }, { status: 401 });
 
     const user = await prisma.usuario.findUnique({ where: { id: auth.id }, select: { preferencias: true, perfilCompletado: true } });

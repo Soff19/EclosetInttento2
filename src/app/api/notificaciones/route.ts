@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 function getUser(request: NextRequest) {
-  const token = extractToken(request);
-  return token ? verifyToken(token) : null;
+  return getAuthenticatedUser(request);
 }
 
 type NotificationRow = {
@@ -24,7 +23,7 @@ type NotificationRow = {
 };
 
 export async function GET(request: NextRequest) {
-  const user = getUser(request);
+  const user = await getUser(request);
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const params = request.nextUrl.searchParams;
@@ -111,7 +110,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const user = getUser(request);
+  const user = await getUser(request);
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {

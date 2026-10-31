@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { extractToken, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const token = extractToken(request);
-  const user = token ? verifyToken(token) : null;
+  const user = await getAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Iniciá sesión para puntuar al vendedor" }, { status: 401 });
 
   let body: unknown;
