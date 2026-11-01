@@ -37,6 +37,7 @@ vi.mock("@/lib/mailer", () => ({
 export const mockPrisma = {
   usuario: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -45,6 +46,7 @@ export const mockPrisma = {
   },
   prenda: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -53,6 +55,7 @@ export const mockPrisma = {
   },
   outfit: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -60,6 +63,7 @@ export const mockPrisma = {
     count: vi.fn(),
   },
   outfitPrenda: {
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     createMany: vi.fn(),
@@ -67,6 +71,7 @@ export const mockPrisma = {
   },
   producto: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -75,6 +80,7 @@ export const mockPrisma = {
   },
   favoritoProducto: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
@@ -82,6 +88,7 @@ export const mockPrisma = {
   },
   compra: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -89,24 +96,32 @@ export const mockPrisma = {
   },
   resenaProducto: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
+    upsert: vi.fn(),
     count: vi.fn(),
   },
   resenaVendedor: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
     create: vi.fn(),
+    aggregate: vi.fn(),
   },
   notificacion: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
+    upsert: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
     count: vi.fn(),
   },
   eventoCalendario: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),

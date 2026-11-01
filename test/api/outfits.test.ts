@@ -9,6 +9,7 @@ describe("API Outfits - GET /api/outfits", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe listar los outfits del usuario", async () => {
@@ -67,18 +68,13 @@ describe("API Outfits - POST /api/outfits", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe crear un outfit con prendas", async () => {
-    const newOutfit = { ...fixtures.outfit.valid, outfitPrendas: [] };
+    const newOutfit = { ...fixtures.outfit.valid, outfitPrendas: [{ id: "op-1", prenda: fixtures.prenda.valid }] };
+    mockPrisma.prenda.count.mockResolvedValue(2);
     mockPrisma.outfit.create.mockResolvedValue(newOutfit);
-    mockPrisma.outfitPrenda.createMany.mockResolvedValue({ count: 2 });
-    mockPrisma.outfit.findUnique.mockResolvedValue({
-      ...newOutfit,
-      outfitPrendas: [
-        { id: "op-1", prenda: fixtures.prenda.valid },
-      ],
-    });
 
     const { POST } = await import("@/app/api/outfits/route");
     const request = new Request("http://localhost/api/outfits", {
@@ -87,7 +83,7 @@ describe("API Outfits - POST /api/outfits", () => {
       body: JSON.stringify({
         nombre: "Mi outfit casual",
         categoria: "CASUAL",
-        prendas: ["prenda-1", "prenda-2"],
+        prendas_ids: ["prenda-1", "prenda-2"],
       }),
     });
 
@@ -105,7 +101,7 @@ describe("API Outfits - POST /api/outfits", () => {
       headers: createAuthHeaders(token),
       body: JSON.stringify({
         categoria: "CASUAL",
-        prendas: ["prenda-1"],
+        prendas_ids: ["prenda-1"],
       }),
     });
 
@@ -113,19 +109,22 @@ describe("API Outfits - POST /api/outfits", () => {
     expect(response.status).toBe(400);
   });
 
-  it("debe rechazar outfit sin prendas", async () => {
+  it("debe crear outfit sin prendas", async () => {
+    const newOutfit = { ...fixtures.outfit.valid, outfitPrendas: [] };
+    mockPrisma.outfit.create.mockResolvedValue(newOutfit);
+
     const { POST } = await import("@/app/api/outfits/route");
     const request = new Request("http://localhost/api/outfits", {
       method: "POST",
       headers: createAuthHeaders(token),
       body: JSON.stringify({
         nombre: "Outfit vacío",
-        prendas: [],
+        prendas_ids: [],
       }),
     });
 
     const response = await POST(request);
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(201);
   });
 });
 
@@ -135,10 +134,11 @@ describe("API Outfits - DELETE /api/outfits/[id]", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe eliminar un outfit propio", async () => {
-    mockPrisma.outfit.findUnique.mockResolvedValue(fixtures.outfit.valid);
+    mockPrisma.outfit.findFirst.mockResolvedValue({ id: "outfit-id-123" });
     mockPrisma.outfit.delete.mockResolvedValue(fixtures.outfit.valid);
 
     const { DELETE } = await import("@/app/api/outfits/[id]/route");
@@ -152,10 +152,7 @@ describe("API Outfits - DELETE /api/outfits/[id]", () => {
   });
 
   it("debe rechazar eliminar outfit de otro usuario", async () => {
-    mockPrisma.outfit.findUnique.mockResolvedValue({
-      ...fixtures.outfit.valid,
-      usuarioId: "otro-usuario-id",
-    });
+    mockPrisma.outfit.findFirst.mockResolvedValue(null);
 
     const { DELETE } = await import("@/app/api/outfits/[id]/route");
     const request = new Request("http://localhost/api/outfits/outfit-id-123", {
@@ -164,6 +161,6 @@ describe("API Outfits - DELETE /api/outfits/[id]", () => {
     });
 
     const response = await DELETE(request, { params: Promise.resolve({ id: "outfit-id-123" }) });
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
   });
 });

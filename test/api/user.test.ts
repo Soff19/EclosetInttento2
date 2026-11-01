@@ -2,34 +2,33 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mockPrisma } from "../setup";
 import { createTestUser, generateTestToken, createAuthHeaders } from "../helpers/auth";
 
-describe("API User - PUT /api/user/preferences", () => {
+describe("API User - POST /api/user/preferences", () => {
   const user = createTestUser({ perfilCompletado: false });
   const token = generateTestToken(user);
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe guardar preferencias del onboarding", async () => {
-    mockPrisma.usuario.findUnique.mockResolvedValue(user);
     mockPrisma.usuario.update.mockResolvedValue({
-      ...user,
-      preferencias: { estilos: ["casual", "formal"], colores: ["negro", "blanco"] },
+      id: user.id,
+      preferencias: { estilos: ["casual", "formal"] },
       perfilCompletado: true,
     });
 
-    const { PUT } = await import("@/app/api/user/preferences/route");
+    const { POST } = await import("@/app/api/user/preferences/route");
     const request = new Request("http://localhost/api/user/preferences", {
-      method: "PUT",
+      method: "POST",
       headers: createAuthHeaders(token),
       body: JSON.stringify({
         estilos: ["casual", "formal"],
         colores: ["negro", "blanco"],
-        tallas: { superior: "M", inferior: "38" },
       }),
     });
 
-    const response = await PUT(request);
+    const response = await POST(request);
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -37,22 +36,22 @@ describe("API User - PUT /api/user/preferences", () => {
   });
 
   it("debe marcar perfil como completado", async () => {
-    mockPrisma.usuario.findUnique.mockResolvedValue(user);
     mockPrisma.usuario.update.mockResolvedValue({
-      ...user,
+      id: user.id,
+      preferencias: { estilos: ["casual"] },
       perfilCompletado: true,
     });
 
-    const { PUT } = await import("@/app/api/user/preferences/route");
+    const { POST } = await import("@/app/api/user/preferences/route");
     const request = new Request("http://localhost/api/user/preferences", {
-      method: "PUT",
+      method: "POST",
       headers: createAuthHeaders(token),
       body: JSON.stringify({
         estilos: ["casual"],
       }),
     });
 
-    await PUT(request);
+    await POST(request);
 
     expect(mockPrisma.usuario.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -64,14 +63,16 @@ describe("API User - PUT /api/user/preferences", () => {
   });
 
   it("debe rechazar sin autenticación", async () => {
-    const { PUT } = await import("@/app/api/user/preferences/route");
+    mockPrisma.usuario.findUnique.mockResolvedValue(null);
+
+    const { POST } = await import("@/app/api/user/preferences/route");
     const request = new Request("http://localhost/api/user/preferences", {
-      method: "PUT",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ estilos: ["casual"] }),
     });
 
-    const response = await PUT(request);
+    const response = await POST(request);
     expect(response.status).toBe(401);
   });
 });
@@ -82,18 +83,24 @@ describe("API User - GET /api/usuarios/[id]", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
+    // Mock para resenaVendedor.aggregate
+    mockPrisma.resenaVendedor = {
+      ...mockPrisma.resenaVendedor,
+      findMany: vi.fn().mockResolvedValue([]),
+      aggregate: vi.fn().mockResolvedValue({ _avg: { puntuacion: null }, _count: { _all: 0 } }),
+    };
+    mockPrisma.compra.findMany.mockResolvedValue([]);
   });
 
   it("debe obtener perfil público de otro usuario", async () => {
-    const otherUser = createTestUser({
+    const otherUser = {
       id: "other-user-id",
-      email: "other@example.com",
       nombre: "Otro Usuario",
-    });
-    mockPrisma.usuario.findUnique.mockResolvedValue({
-      ...otherUser,
-      _count: { prendas: 10, outfits: 5, productos: 3 },
-    });
+      fotoPerfil: null,
+      fechaCreacion: new Date(),
+    };
+    mockPrisma.usuario.findUnique.mockResolvedValue(otherUser);
 
     const { GET } = await import("@/app/api/usuarios/[id]/route");
     const request = new Request("http://localhost/api/usuarios/other-user-id", {
@@ -104,9 +111,8 @@ describe("API User - GET /api/usuarios/[id]", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.usuario).toBeDefined();
-    expect(data.usuario.nombre).toBe("Otro Usuario");
-    expect(data.usuario.email).toBeUndefined();
+    expect(data.seller).toBeDefined();
+    expect(data.seller.nombre).toBe("Otro Usuario");
   });
 
   it("debe retornar 404 para usuario inexistente", async () => {
@@ -128,6 +134,7 @@ describe("API Auth - PUT /api/auth/profile", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe actualizar nombre de usuario", async () => {
@@ -168,5 +175,19 @@ describe("API Auth - PUT /api/auth/profile", () => {
 
     expect(response.status).toBe(200);
     expect(data.user.fotoPerfil).toBe("https://example.com/new-photo.jpg");
+  });
+
+  it("debe rechazar sin autenticación", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue(null);
+
+    const { PUT } = await import("@/app/api/auth/profile/route");
+    const request = new Request("http://localhost/api/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: "Test" }),
+    });
+
+    const response = await PUT(request);
+    expect(response.status).toBe(401);
   });
 });

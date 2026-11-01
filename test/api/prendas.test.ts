@@ -9,6 +9,7 @@ describe("API Prendas - GET /api/prendas", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe listar las prendas del usuario autenticado", async () => {
@@ -62,6 +63,7 @@ describe("API Prendas - POST /api/prendas", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe crear una prenda con imagen URL", async () => {
@@ -158,10 +160,11 @@ describe("API Prendas - GET /api/prendas/[id]", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe retornar 404 para prenda inexistente", async () => {
-    mockPrisma.prenda.findUnique.mockResolvedValue(null);
+    mockPrisma.prenda.findFirst.mockResolvedValue(null);
 
     const { GET } = await import("@/app/api/prendas/[id]/route");
     const request = new Request("http://localhost/api/prendas/no-existe", {
@@ -173,10 +176,7 @@ describe("API Prendas - GET /api/prendas/[id]", () => {
   });
 
   it("debe rechazar acceso a prenda de otro usuario", async () => {
-    mockPrisma.prenda.findUnique.mockResolvedValue({
-      ...fixtures.prenda.valid,
-      usuarioId: "otro-usuario-id",
-    });
+    mockPrisma.prenda.findFirst.mockResolvedValue(null);
 
     const { GET } = await import("@/app/api/prendas/[id]/route");
     const request = new Request("http://localhost/api/prendas/prenda-id-123", {
@@ -184,7 +184,7 @@ describe("API Prendas - GET /api/prendas/[id]", () => {
     });
 
     const response = await GET(request, { params: Promise.resolve({ id: "prenda-id-123" }) });
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
   });
 });
 
@@ -194,10 +194,11 @@ describe("API Prendas - DELETE /api/prendas/[id]", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe eliminar una prenda propia", async () => {
-    mockPrisma.prenda.findUnique.mockResolvedValue(fixtures.prenda.valid);
+    mockPrisma.prenda.findFirst.mockResolvedValue(fixtures.prenda.valid);
     mockPrisma.prenda.delete.mockResolvedValue(fixtures.prenda.valid);
 
     const { DELETE } = await import("@/app/api/prendas/[id]/route");
@@ -212,10 +213,7 @@ describe("API Prendas - DELETE /api/prendas/[id]", () => {
   });
 
   it("debe rechazar eliminar prenda de otro usuario", async () => {
-    mockPrisma.prenda.findUnique.mockResolvedValue({
-      ...fixtures.prenda.valid,
-      usuarioId: "otro-usuario-id",
-    });
+    mockPrisma.prenda.findFirst.mockResolvedValue(null);
 
     const { DELETE } = await import("@/app/api/prendas/[id]/route");
     const request = new Request("http://localhost/api/prendas/prenda-id-123", {
@@ -224,6 +222,6 @@ describe("API Prendas - DELETE /api/prendas/[id]", () => {
     });
 
     const response = await DELETE(request, { params: Promise.resolve({ id: "prenda-id-123" }) });
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
   });
 });

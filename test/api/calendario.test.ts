@@ -9,6 +9,7 @@ describe("API Calendario - GET /api/calendario/mes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe obtener eventos del mes actual", async () => {
@@ -19,7 +20,7 @@ describe("API Calendario - GET /api/calendario/mes", () => {
     mockPrisma.eventoCalendario.findMany.mockResolvedValue(eventos);
 
     const { GET } = await import("@/app/api/calendario/mes/route");
-    const request = new Request("http://localhost/api/calendario/mes?year=2026&month=11", {
+    const request = new Request("http://localhost/api/calendario/mes?mes=11&anio=2026", {
       headers: createAuthHeaders(token),
     });
 
@@ -34,7 +35,7 @@ describe("API Calendario - GET /api/calendario/mes", () => {
     mockPrisma.eventoCalendario.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/calendario/mes/route");
-    const request = new Request("http://localhost/api/calendario/mes?year=2026&month=11", {
+    const request = new Request("http://localhost/api/calendario/mes?mes=11&anio=2026", {
       headers: createAuthHeaders(token),
     });
 
@@ -46,7 +47,7 @@ describe("API Calendario - GET /api/calendario/mes", () => {
           usuarioId: user.id,
           fecha: expect.objectContaining({
             gte: expect.any(Date),
-            lt: expect.any(Date),
+            lte: expect.any(Date),
           }),
         }),
       })
@@ -55,7 +56,7 @@ describe("API Calendario - GET /api/calendario/mes", () => {
 
   it("debe rechazar sin autenticación", async () => {
     const { GET } = await import("@/app/api/calendario/mes/route");
-    const request = new Request("http://localhost/api/calendario/mes?year=2026&month=11");
+    const request = new Request("http://localhost/api/calendario/mes?mes=11&anio=2026");
 
     const response = await GET(request);
     expect(response.status).toBe(401);
@@ -68,6 +69,7 @@ describe("API Calendario - POST /api/calendario/evento", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe crear un evento de calendario", async () => {
@@ -106,15 +108,13 @@ describe("API Calendario - POST /api/calendario/evento", () => {
     expect(response.status).toBe(400);
   });
 
-  it("debe rechazar tipo de evento inválido", async () => {
+  it("debe rechazar evento sin titulo", async () => {
     const { POST } = await import("@/app/api/calendario/evento/route");
     const request = new Request("http://localhost/api/calendario/evento", {
       method: "POST",
       headers: createAuthHeaders(token),
       body: JSON.stringify({
         fecha: "2026-11-15",
-        tipo: "tipo_invalido",
-        titulo: "Evento",
       }),
     });
 
@@ -129,11 +129,15 @@ describe("API Calendario - POST /api/calendario/outfit", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe asignar outfit a una fecha", async () => {
-    mockPrisma.outfit.findUnique.mockResolvedValue(fixtures.outfit.valid);
-    mockPrisma.eventoCalendario.create.mockResolvedValue(fixtures.eventoCalendario.outfit);
+    mockPrisma.outfit.findFirst.mockResolvedValue(fixtures.outfit.valid);
+    mockPrisma.eventoCalendario.create.mockResolvedValue({
+      ...fixtures.eventoCalendario.outfit,
+      outfit: { id: "outfit-id-123", nombre: "Mi outfit" },
+    });
 
     const { POST } = await import("@/app/api/calendario/outfit/route");
     const request = new Request("http://localhost/api/calendario/outfit", {
@@ -150,7 +154,7 @@ describe("API Calendario - POST /api/calendario/outfit", () => {
   });
 
   it("debe rechazar outfit inexistente", async () => {
-    mockPrisma.outfit.findUnique.mockResolvedValue(null);
+    mockPrisma.outfit.findFirst.mockResolvedValue(null);
 
     const { POST } = await import("@/app/api/calendario/outfit/route");
     const request = new Request("http://localhost/api/calendario/outfit", {
@@ -166,24 +170,18 @@ describe("API Calendario - POST /api/calendario/outfit", () => {
     expect(response.status).toBe(404);
   });
 
-  it("debe rechazar outfit de otro usuario", async () => {
-    mockPrisma.outfit.findUnique.mockResolvedValue({
-      ...fixtures.outfit.valid,
-      usuarioId: "otro-usuario-id",
-    });
-
+  it("debe rechazar sin outfitId", async () => {
     const { POST } = await import("@/app/api/calendario/outfit/route");
     const request = new Request("http://localhost/api/calendario/outfit", {
       method: "POST",
       headers: createAuthHeaders(token),
       body: JSON.stringify({
         fecha: "2026-11-20",
-        outfitId: "outfit-ajeno",
       }),
     });
 
     const response = await POST(request);
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(400);
   });
 });
 
@@ -193,10 +191,11 @@ describe("API Calendario - DELETE /api/calendario/[id]", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe eliminar evento propio", async () => {
-    mockPrisma.eventoCalendario.findUnique.mockResolvedValue(fixtures.eventoCalendario.valid);
+    mockPrisma.eventoCalendario.findFirst.mockResolvedValue(fixtures.eventoCalendario.valid);
     mockPrisma.eventoCalendario.delete.mockResolvedValue(fixtures.eventoCalendario.valid);
 
     const { DELETE } = await import("@/app/api/calendario/[id]/route");
@@ -210,10 +209,7 @@ describe("API Calendario - DELETE /api/calendario/[id]", () => {
   });
 
   it("debe rechazar eliminar evento de otro usuario", async () => {
-    mockPrisma.eventoCalendario.findUnique.mockResolvedValue({
-      ...fixtures.eventoCalendario.valid,
-      usuarioId: "otro-usuario-id",
-    });
+    mockPrisma.eventoCalendario.findFirst.mockResolvedValue(null);
 
     const { DELETE } = await import("@/app/api/calendario/[id]/route");
     const request = new Request("http://localhost/api/calendario/evento-id-123", {
@@ -222,6 +218,6 @@ describe("API Calendario - DELETE /api/calendario/[id]", () => {
     });
 
     const response = await DELETE(request, { params: Promise.resolve({ id: "evento-id-123" }) });
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
   });
 });

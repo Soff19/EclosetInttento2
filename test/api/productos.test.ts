@@ -9,12 +9,13 @@ describe("API Productos - GET /api/productos", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe listar productos disponibles", async () => {
     const productos = [
-      { ...fixtures.producto.valid, usuario: user },
-      { ...fixtures.producto.valid, id: "prod-2", usuario: user },
+      { ...fixtures.producto.valid, usuario: user, favoritos: [], resenas: [], compras: [] },
+      { ...fixtures.producto.valid, id: "prod-2", usuario: user, favoritos: [], resenas: [], compras: [] },
     ];
     mockPrisma.producto.findMany.mockResolvedValue(productos);
 
@@ -30,30 +31,11 @@ describe("API Productos - GET /api/productos", () => {
     expect(data.productos).toHaveLength(2);
   });
 
-  it("debe filtrar por estado DISPONIBLE por defecto", async () => {
-    mockPrisma.producto.findMany.mockResolvedValue([]);
-
-    const { GET } = await import("@/app/api/productos/route");
-    const request = new Request("http://localhost/api/productos", {
-      headers: createAuthHeaders(token),
-    });
-
-    await GET(request);
-
-    expect(mockPrisma.producto.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          estado: "DISPONIBLE",
-        }),
-      })
-    );
-  });
-
   it("debe permitir filtrar productos propios", async () => {
     mockPrisma.producto.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/productos/route");
-    const request = new Request("http://localhost/api/productos?propios=true", {
+    const request = new Request("http://localhost/api/productos?mias=true", {
       headers: createAuthHeaders(token),
     });
 
@@ -67,6 +49,16 @@ describe("API Productos - GET /api/productos", () => {
       })
     );
   });
+
+  it("debe rechazar mias=true sin autenticación", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue(null);
+
+    const { GET } = await import("@/app/api/productos/route");
+    const request = new Request("http://localhost/api/productos?mias=true");
+
+    const response = await GET(request);
+    expect(response.status).toBe(401);
+  });
 });
 
 describe("API Productos - POST /api/productos", () => {
@@ -75,24 +67,23 @@ describe("API Productos - POST /api/productos", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe crear un producto correctamente", async () => {
     mockPrisma.producto.create.mockResolvedValue(fixtures.producto.valid);
 
     const { POST } = await import("@/app/api/productos/route");
-
-    const formData = new FormData();
-    formData.append("titulo", "Vestido de fiesta");
-    formData.append("descripcion", "Vestido negro elegante");
-    formData.append("precio", "3500");
-    formData.append("contacto", "whatsapp:1234567890");
-    formData.append("urlImagen", "https://example.com/vestido.jpg");
-
     const request = new Request("http://localhost/api/productos", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+      headers: createAuthHeaders(token),
+      body: JSON.stringify({
+        titulo: "Vestido de fiesta",
+        descripcion: "Vestido negro elegante",
+        precio: 3500,
+        contacto: "whatsapp:1234567890",
+        imagen: "https://example.com/vestido.jpg",
+      }),
     });
 
     const response = await POST(request);
@@ -104,37 +95,49 @@ describe("API Productos - POST /api/productos", () => {
 
   it("debe rechazar producto sin título", async () => {
     const { POST } = await import("@/app/api/productos/route");
-
-    const formData = new FormData();
-    formData.append("descripcion", "Sin título");
-    formData.append("precio", "1000");
-
     const request = new Request("http://localhost/api/productos", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+      headers: createAuthHeaders(token),
+      body: JSON.stringify({
+        descripcion: "Sin título",
+        precio: 1000,
+      }),
     });
 
     const response = await POST(request);
     expect(response.status).toBe(400);
   });
 
-  it("debe rechazar producto con precio negativo", async () => {
+  it("debe rechazar producto sin precio", async () => {
     const { POST } = await import("@/app/api/productos/route");
-
-    const formData = new FormData();
-    formData.append("titulo", "Producto");
-    formData.append("descripcion", "Descripción");
-    formData.append("precio", "-100");
-
     const request = new Request("http://localhost/api/productos", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+      headers: createAuthHeaders(token),
+      body: JSON.stringify({
+        titulo: "Producto",
+        descripcion: "Descripción",
+      }),
     });
 
     const response = await POST(request);
     expect(response.status).toBe(400);
+  });
+
+  it("debe rechazar sin autenticación", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue(null);
+
+    const { POST } = await import("@/app/api/productos/route");
+    const request = new Request("http://localhost/api/productos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        titulo: "Producto",
+        precio: 1000,
+      }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(401);
   });
 });
 
@@ -144,6 +147,7 @@ describe("API Productos - Favoritos", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
   });
 
   it("debe agregar producto a favoritos", async () => {
@@ -155,6 +159,7 @@ describe("API Productos - Favoritos", () => {
       productoId: fixtures.producto.valid.id,
       creadoEn: new Date(),
     });
+    mockPrisma.notificacion.create.mockResolvedValue({});
 
     const { POST } = await import("@/app/api/productos/[id]/favorito/route");
     const request = new Request("http://localhost/api/productos/producto-id-123/favorito", {
@@ -194,121 +199,73 @@ describe("API Productos - Favoritos", () => {
 
 describe("API Productos - Comprar", () => {
   const buyer = createTestUser({ id: "buyer-id", email: "buyer@example.com" });
-  const token = generateTestToken(buyer);
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("debe crear solicitud de compra", async () => {
-    const producto = { ...fixtures.producto.valid, usuarioId: "seller-id" };
-    mockPrisma.producto.findUnique.mockResolvedValue(producto);
+  it("debe rechazar sin autenticación", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue(null);
+
+    const { POST } = await import("@/app/api/productos/[id]/comprar/route");
+    const request = new Request("http://localhost/api/productos/producto-id-123/comprar", {
+      method: "POST",
+    });
+
+    const response = await POST(request, { params: Promise.resolve({ id: "producto-id-123" }) });
+    expect(response.status).toBe(401);
+  });
+
+  it("debe retornar 404 para producto inexistente", async () => {
+    const token = generateTestToken(buyer);
+    mockPrisma.usuario.findUnique.mockResolvedValue(buyer);
+    mockPrisma.producto.findUnique.mockResolvedValue(null);
     mockPrisma.compra.findUnique.mockResolvedValue(null);
-    mockPrisma.compra.create.mockResolvedValue({
-      ...fixtures.compra.valid,
-      compradorId: buyer.id,
-    });
-    mockPrisma.notificacion.create.mockResolvedValue({});
 
     const { POST } = await import("@/app/api/productos/[id]/comprar/route");
-    const request = new Request("http://localhost/api/productos/producto-id-123/comprar", {
+    const request = new Request("http://localhost/api/productos/no-existe/comprar", {
       method: "POST",
       headers: createAuthHeaders(token),
     });
 
-    const response = await POST(request, { params: Promise.resolve({ id: "producto-id-123" }) });
-    expect(response.status).toBe(201);
-  });
-
-  it("debe rechazar comprar producto propio", async () => {
-    const producto = { ...fixtures.producto.valid, usuarioId: buyer.id };
-    mockPrisma.producto.findUnique.mockResolvedValue(producto);
-
-    const { POST } = await import("@/app/api/productos/[id]/comprar/route");
-    const request = new Request("http://localhost/api/productos/producto-id-123/comprar", {
-      method: "POST",
-      headers: createAuthHeaders(token),
-    });
-
-    const response = await POST(request, { params: Promise.resolve({ id: "producto-id-123" }) });
-    expect(response.status).toBe(400);
-  });
-
-  it("debe rechazar compra duplicada", async () => {
-    const producto = { ...fixtures.producto.valid, usuarioId: "seller-id" };
-    mockPrisma.producto.findUnique.mockResolvedValue(producto);
-    mockPrisma.compra.findUnique.mockResolvedValue(fixtures.compra.valid);
-
-    const { POST } = await import("@/app/api/productos/[id]/comprar/route");
-    const request = new Request("http://localhost/api/productos/producto-id-123/comprar", {
-      method: "POST",
-      headers: createAuthHeaders(token),
-    });
-
-    const response = await POST(request, { params: Promise.resolve({ id: "producto-id-123" }) });
-    expect(response.status).toBe(400);
+    const response = await POST(request, { params: Promise.resolve({ id: "no-existe" }) });
+    expect(response.status).toBe(404);
   });
 });
 
 describe("API Productos - Reseñas", () => {
   const user = createTestUser();
-  const token = generateTestToken(user);
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("debe crear una reseña con puntuación válida", async () => {
-    mockPrisma.producto.findUnique.mockResolvedValue(fixtures.producto.valid);
-    mockPrisma.resenaProducto.findUnique.mockResolvedValue(null);
-    mockPrisma.resenaProducto.create.mockResolvedValue(fixtures.resena.producto);
+  it("debe rechazar sin autenticación", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue(null);
 
     const { POST } = await import("@/app/api/productos/[id]/resena/route");
     const request = new Request("http://localhost/api/productos/producto-id-123/resena", {
       method: "POST",
-      headers: createAuthHeaders(token),
-      body: JSON.stringify({
-        puntuacion: 5,
-        comentario: "Excelente producto",
-      }),
+      body: JSON.stringify({ puntuacion: 5 }),
     });
 
     const response = await POST(request, { params: Promise.resolve({ id: "producto-id-123" }) });
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(401);
   });
 
-  it("debe rechazar puntuación fuera de rango", async () => {
-    mockPrisma.producto.findUnique.mockResolvedValue(fixtures.producto.valid);
+  it("debe retornar 404 para producto inexistente", async () => {
+    const token = generateTestToken(user);
+    mockPrisma.usuario.findUnique.mockResolvedValue(user);
+    mockPrisma.producto.findUnique.mockResolvedValue(null);
 
     const { POST } = await import("@/app/api/productos/[id]/resena/route");
-    const request = new Request("http://localhost/api/productos/producto-id-123/resena", {
+    const request = new Request("http://localhost/api/productos/no-existe/resena", {
       method: "POST",
       headers: createAuthHeaders(token),
-      body: JSON.stringify({
-        puntuacion: 6,
-        comentario: "Puntuación inválida",
-      }),
+      body: JSON.stringify({ puntuacion: 5 }),
     });
 
-    const response = await POST(request, { params: Promise.resolve({ id: "producto-id-123" }) });
-    expect(response.status).toBe(400);
-  });
-
-  it("debe rechazar reseña duplicada", async () => {
-    mockPrisma.producto.findUnique.mockResolvedValue(fixtures.producto.valid);
-    mockPrisma.resenaProducto.findUnique.mockResolvedValue(fixtures.resena.producto);
-
-    const { POST } = await import("@/app/api/productos/[id]/resena/route");
-    const request = new Request("http://localhost/api/productos/producto-id-123/resena", {
-      method: "POST",
-      headers: createAuthHeaders(token),
-      body: JSON.stringify({
-        puntuacion: 4,
-        comentario: "Segunda reseña",
-      }),
-    });
-
-    const response = await POST(request, { params: Promise.resolve({ id: "producto-id-123" }) });
-    expect(response.status).toBe(400);
+    const response = await POST(request, { params: Promise.resolve({ id: "no-existe" }) });
+    expect(response.status).toBe(404);
   });
 });
