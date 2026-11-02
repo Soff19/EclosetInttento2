@@ -15,10 +15,50 @@ export default function Home() {
   const [recoveryLoading, setRecoveryLoading] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [sessionCheckError, setSessionCheckError] = useState("");
   const router = useRouter();
   const recoveryTriggerRef = useRef<HTMLButtonElement>(null);
   const recoveryDialogRef = useRef<HTMLElement>(null);
   const recoveryWasOpen = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkSession() {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        if (response.status === 401 || response.status === 404) {
+          if (!cancelled) setCheckingSession(false);
+          return;
+        }
+        if (!response.ok) {
+          throw new Error("No pudimos verificar tu sesión.");
+        }
+
+        const { user }: {
+          user: { rol?: string; perfilCompletado?: boolean };
+        } = await response.json();
+        const destination = user.rol === "ADMIN"
+          ? "/admin"
+          : user.perfilCompletado
+            ? "/home"
+            : "/onboarding";
+
+        if (!cancelled) router.replace(destination);
+      } catch {
+        if (!cancelled) {
+          setSessionCheckError("No pudimos verificar tu sesión. Intentá nuevamente.");
+          setCheckingSession(false);
+        }
+      }
+    }
+
+    void checkSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -110,6 +150,25 @@ export default function Home() {
     document.addEventListener("keydown", handleDialogKeyDown);
     return () => document.removeEventListener("keydown", handleDialogKeyDown);
   }, [recoveryOpen]);
+
+  if (checkingSession) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F8F7F2] text-[#0B493D]">
+        <p role="status">Verificando sesión...</p>
+      </main>
+    );
+  }
+
+  if (sessionCheckError) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#F8F7F2] px-5 text-center text-[#0B493D]">
+        <p role="alert">{sessionCheckError}</p>
+        <button type="button" onClick={() => window.location.reload()} className="auth-button-primary">
+          Reintentar
+        </button>
+      </main>
+    );
+  }
 
   return (
     <main className="auth-page grid min-h-screen lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
