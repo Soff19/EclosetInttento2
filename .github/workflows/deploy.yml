@@ -35,7 +35,6 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
@@ -51,14 +50,10 @@ jobs:
 
       - name: Vincular proyecto y cargar entorno de producción
         run: |
-          if [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "::error::Falta configurar el secreto VERCEL_PROJECT_ID con el ID del proyecto correcto de Vercel."
-            exit 1
-          fi
-          npx vercel link --yes --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          npx vercel link --yes --project eclosetinttento2 --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
           npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
 
       - name: Compilar y desplegar a Vercel
         run: |
           npx vercel build --prod --token "$VERCEL_TOKEN"
-          npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
+          npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --name=eclosetinttento2 --yes
