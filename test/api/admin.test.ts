@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest as Request } from "next/server";
 import { mockPrisma } from "../setup";
 import { createTestUser, createAdminUser, generateTestToken, createAuthHeaders } from "../helpers/auth";
 

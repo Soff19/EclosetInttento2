@@ -7,12 +7,14 @@ vi.mock("@/lib/prisma", () => ({
 
 // Mock de ImageKit
 vi.mock("@/lib/imagekit", () => ({
-  getImageKit: () => ({
+  getImageKit: vi.fn(() => ({
     upload: vi.fn().mockResolvedValue({
       url: "https://ik.imagekit.io/test/image.jpg",
       fileId: "test-file-id",
     }),
-  }),
+    deleteFile: vi.fn().mockResolvedValue({}),
+  })),
+  getBackgroundRemovedUrl: vi.fn((url: string) => url),
 }));
 
 // Mock de notifications
@@ -75,6 +77,8 @@ export const mockPrisma = {
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
     delete: vi.fn(),
     count: vi.fn(),
   },
@@ -92,6 +96,7 @@ export const mockPrisma = {
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     count: vi.fn(),
   },
   resenaProducto: {
@@ -138,4 +143,3 @@ afterEach(() => {
 // Variables de entorno para tests
 process.env.JWT_SECRET = "test-jwt-secret-key-for-testing";
 process.env.JWT_EXPIRES_IN = "1h";
-process.env.NODE_ENV = "test";

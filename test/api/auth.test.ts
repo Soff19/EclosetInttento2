@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest as Request } from "next/server";
 import { mockPrisma } from "../setup";
 import { createTestUser, generateTestToken, createAuthHeaders } from "../helpers/auth";
 import bcrypt from "bcryptjs";
@@ -232,11 +233,7 @@ describe("API Auth - GET /api/auth/me", () => {
 describe("API Auth - POST /api/auth/logout", () => {
   it("debe hacer logout limpiando la cookie", async () => {
     const { POST } = await import("@/app/api/auth/logout/route");
-    const request = new Request("http://localhost/api/auth/logout", {
-      method: "POST",
-    });
-
-    const response = await POST(request);
+    const response = await POST();
     const data = await response.json();
 
     expect(response.status).toBe(200);
