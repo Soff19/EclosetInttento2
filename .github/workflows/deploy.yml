@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  validate-and-deploy:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
@@ -22,11 +22,43 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Validar tipos de TypeScript y Compilar
-        run: npm run build
-
       - name: Ejecutar Tests
         run: npm run test
 
-      - name: Desplegar a Vercel
-        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --name=eclosetinttento2 --yes
+      - name: Validar tipos de TypeScript y Compilar
+        run: npm run build
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Vincular proyecto y cargar entorno de producción
+        run: |
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Falta configurar el secreto VERCEL_PROJECT_ID con el ID del proyecto correcto de Vercel."
+            exit 1
+          fi
+          npx vercel link --yes --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+
+      - name: Compilar y desplegar a Vercel
+        run: |
+          npx vercel build --prod --token "$VERCEL_TOKEN"
+          npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
