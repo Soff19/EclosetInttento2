@@ -11,6 +11,7 @@ import {
   UsersRound,
   WandSparkles,
 } from "lucide-react";
+import EditorialSectionBanner from "@/components/EditorialSectionBanner";
 import {
   etiquetasPeriodo,
   type InformeEjemplo,
@@ -206,20 +207,15 @@ export default function AdminReportesPage() {
     indicadores.some(({ id }) => informe.indicadores[id] > 0);
 
   return (
-    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8" style={{ background: "#F9F5F0" }}>
-      <div className="mx-auto max-w-7xl">
-        <header className="report-enter mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: "#6b6b60" }}>
-              Panel de administración
-            </p>
-            <h1 className="mt-1 text-3xl font-light tracking-[-0.02em] sm:text-4xl" style={{ color: "#2C3E2D" }}>
-              Reportes y métricas
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6" style={{ color: "#6b6b60" }}>
-              Explorá la actividad de ECloset y descargá un resumen de los indicadores del período elegido.
-            </p>
-          </div>
+    <main className="min-h-screen bg-[#F7F1E7]">
+      <EditorialSectionBanner
+        id="admin-reports-title"
+        eyebrow="Panel de administración"
+        title="Reportes y métricas"
+        description="Explorá la actividad de ECloset y descargá un resumen de los indicadores del período elegido."
+      />
+      <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+        <section aria-label="Controles del informe" className="report-enter mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div>
               <label htmlFor="periodo-informe" className="mb-2 block text-xs font-medium" style={{ color: "#2C3E2D" }}>
@@ -248,7 +244,7 @@ export default function AdminReportesPage() {
               Descargar informe (CSV)
             </button>
           </div>
-        </header>
+        </section>
 
         {error && <p role="alert" className="mb-5 rounded-xl bg-[#fff0f0] px-4 py-3 text-sm text-[#9b4141]">{error}</p>}
         {cargando ? (

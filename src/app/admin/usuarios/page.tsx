@@ -12,6 +12,7 @@ import {
   UserRoundX,
   X,
 } from "lucide-react";
+import EditorialSectionBanner from "@/components/EditorialSectionBanner";
 import {
   type EstadoUsuaria,
   type RolUsuaria,
@@ -261,19 +262,14 @@ export default function AdminUsuariosPage() {
   const campoEstilo = { borderColor: "#e8e4de", background: "#fff", color: "#2C3E2D" };
 
   return (
-    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8" style={{ background: "#F9F5F0" }}>
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-7">
-          <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: "#6b6b60" }}>
-            Panel de administración
-          </p>
-          <h1 className="mt-1 text-3xl font-light tracking-[-0.02em] sm:text-4xl" style={{ color: "#2C3E2D" }}>
-            Gestionar usuarias
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6" style={{ color: "#6b6b60" }}>
-            Consultá perfiles y administrá su acceso y rol. Los cambios se guardan en la base de datos.
-          </p>
-        </header>
+    <main className="min-h-screen bg-[#F7F1E7]">
+      <EditorialSectionBanner
+        id="admin-users-title"
+        eyebrow="Panel de administración"
+        title="Gestionar usuarias"
+        description="Consultá perfiles y administrá su acceso y rol. Los cambios se guardan en la base de datos."
+      />
+      <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
 
         {error && <p role="alert" className="mb-5 rounded-xl bg-[#fff0f0] px-4 py-3 text-sm text-[#9b4141]">{error}</p>}
         {cargando && <p role="status" className="mb-5 text-sm" style={{ color: "#6b6b60" }}>Cargando usuarias...</p>}

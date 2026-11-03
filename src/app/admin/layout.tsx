@@ -40,14 +40,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   if (!verificado) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-5" style={{ background: "#F9F5F0", color: "#2C3E2D" }}>
+      <main className="flex min-h-screen items-center justify-center px-5" style={{ background: "#F7F1E7", color: "#0B493D" }}>
         <p className="text-sm" role="status">Verificando credenciales de seguridad...</p>
       </main>
     );
   }
 
   return (
-    <div className="min-h-screen lg:flex" style={{ background: "#F9F5F0" }}>
+    <div className="min-h-screen lg:flex" style={{ background: "#F7F1E7" }}>
       <AdminNav />
       <div className="min-w-0 flex-1">{children}</div>
     </div>

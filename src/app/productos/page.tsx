@@ -8,8 +8,8 @@ import NuevoProductoForm, {
   MARKETPLACE_COLORS,
   MARKETPLACE_SIZES,
   MARKETPLACE_STYLES,
-  MARKETPLACE_TYPES,
 } from "@/components/productos/NuevoProductoForm";
+import { MARKETPLACE_TYPES } from "@/lib/marketplace-catalog";
 import EditorialSectionBanner from "@/components/EditorialSectionBanner";
 import styles from "../fashion-sections.module.css";
 

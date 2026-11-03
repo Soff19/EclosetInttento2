@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import styles from "@/app/fashion-sections.module.css";
+import { getMarketplaceSizes, MARKETPLACE_TYPES } from "@/lib/marketplace-catalog";
 
 export const MARKETPLACE_STYLES = [
   ["casual", "Casual"],
@@ -12,32 +13,11 @@ export const MARKETPLACE_STYLES = [
   ["elegante", "Elegante"],
   ["deportivo", "Deportivo"],
 ] as const;
-export const MARKETPLACE_TYPES = [
-  ["short", "Short"],
-  ["remera", "Remera"],
-  ["blusa", "Blusa"],
-  ["vestido", "Vestido"],
-  ["camisa", "Camisa"],
-  ["zapatos", "Zapatos"],
-] as const;
 export const MARKETPLACE_SIZES = [
   "XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL",
   "30", "32", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47",
   "Único", "Otro",
 ];
-const MARKETPLACE_SIZE_GROUPS = {
-  arriba: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"],
-  abajo: ["30", "32", "34", "36", "38", "40", "42", "44", "46"],
-  calzado: ["34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47"],
-} as const;
-const SIZE_GROUP_BY_TYPE: Record<string, keyof typeof MARKETPLACE_SIZE_GROUPS> = {
-  remera: "arriba",
-  blusa: "arriba",
-  vestido: "arriba",
-  camisa: "arriba",
-  short: "abajo",
-  zapatos: "calzado",
-};
 export const MARKETPLACE_COLORS = [
   ["negro", "Negro"],
   ["blanco", "Blanco"],
@@ -271,7 +251,7 @@ export default function NuevoProductoForm({
           </div>
           {tipo ? (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Opciones de talle">
-              {MARKETPLACE_SIZE_GROUPS[SIZE_GROUP_BY_TYPE[tipo]].map((option) => (
+              {getMarketplaceSizes(tipo).map((option) => (
                 <button
                   key={option}
                   type="button"

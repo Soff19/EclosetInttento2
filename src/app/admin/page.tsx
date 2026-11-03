@@ -13,6 +13,7 @@ import {
   UserRoundPlus,
 } from "lucide-react";
 import { resumenAdmin, type ActividadAdmin } from "./datosResumen";
+import EditorialSectionBanner from "@/components/EditorialSectionBanner";
 
 const iconosResumen = {
   usuarias: UsersRound,
@@ -125,32 +126,15 @@ export default function AdminDashboard() {
   }, [resumen]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 py-7 sm:px-6 sm:py-10 lg:px-8" style={{ background: "#F9F5F0" }}>
-      <div className="pointer-events-none absolute -left-20 top-0 h-64 w-64 rounded-full opacity-20 blur-3xl" style={{ background: "#A8C5A0" }} />
-      <div className="pointer-events-none absolute -right-20 top-80 h-72 w-72 rounded-full opacity-15 blur-3xl" style={{ background: "#C9A96E" }} />
-
-      <div className="relative mx-auto max-w-7xl">
+    <main className="min-h-screen bg-[#F7F1E7]">
+      <EditorialSectionBanner
+        id="admin-dashboard-title"
+        eyebrow="ECloset · Administración"
+        title={`Hola, ${nombreAdmin}`}
+        description="Este es el resumen de lo que está pasando en tu comunidad."
+      />
+      <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
         {error && <p role="alert" className="mb-5 rounded-xl bg-[#fff0f0] px-4 py-3 text-sm text-[#9b4141]">{error}</p>}
-        <header className="dashboard-enter mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: "#6b6b60" }}>
-              ECloset · Administración
-            </p>
-            <h1 className="mt-1 text-3xl font-light tracking-[-0.03em] sm:text-4xl" style={{ color: "#2C3E2D" }}>
-              Hola, {nombreAdmin} <span aria-hidden="true">✨</span>
-            </h1>
-            <p className="mt-2 max-w-xl text-sm leading-6" style={{ color: "#6b6b60" }}>
-              Este es el resumen de lo que está pasando en tu comunidad.
-            </p>
-          </div>
-          <div
-            className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-xs"
-            style={{ background: "rgba(168,197,160,0.25)", color: "#2C3E2D" }}
-          >
-            <span className="h-2 w-2 rounded-full" style={{ background: "#6b9366" }} />
-            Panel de administración
-          </div>
-        </header>
 
         <section aria-label="Resumen de actividad" className="mb-9 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {resumenAdmin.map((dato, index) => {

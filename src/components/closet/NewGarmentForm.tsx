@@ -4,19 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X, Upload, Plus, ChevronDown } from "lucide-react";
 import styles from "@/app/fashion-sections.module.css";
-
-const CATEGORIAS = [
-  "Remera",
-  "Pantalón",
-  "Vestido",
-  "Falda",
-  "Campera",
-  "Abrigo",
-  "Calzado",
-  "Accesorio",
-  "Ropa interior",
-  "Deportivo",
-];
+import { getMarketplaceSizes, MARKETPLACE_TYPES } from "@/lib/marketplace-catalog";
 
 const ETIQUETAS_SUGERIDAS = [
   "casual",
@@ -33,8 +21,6 @@ const ETIQUETAS_SUGERIDAS = [
   "estampado",
 ];
 
-const TALLES = ["XS", "S", "M", "L", "XL", "XXL", "Único", "Otro"];
-
 interface NewGarmentFormProps {
   onClose?: () => void;
   onSaved?: () => void;
@@ -49,7 +35,6 @@ export default function NewGarmentForm({ onClose, onSaved }: NewGarmentFormProps
 
   const [nombre, setNombre] = useState("");
   const [categoria, setCategoria] = useState("");
-  const [categoriaCustom, setCategoriaCustom] = useState("");
   const [mostrarCategorias, setMostrarCategorias] = useState(false);
   const [talle, setTalle] = useState("");
   const [color, setColor] = useState("");
@@ -142,7 +127,9 @@ export default function NewGarmentForm({ onClose, onSaved }: NewGarmentFormProps
     setEtiquetas((prev) => prev.filter((e) => e !== tag));
   };
 
-  const categoriaFinal = categoria === "Otro" ? categoriaCustom : categoria;
+  const categoriaFinal = categoria;
+  const tipoPrenda = MARKETPLACE_TYPES.find(([, label]) => label === categoria)?.[0] ?? "";
+  const tallesDisponibles = getMarketplaceSizes(tipoPrenda);
 
   const handleSubmit = async () => {
     setError("");
@@ -340,7 +327,7 @@ export default function NewGarmentForm({ onClose, onSaved }: NewGarmentFormProps
             className="block uppercase text-[10px] tracking-[0.15em] font-medium mb-2"
             style={{ color: "#6b6b60" }}
           >
-            Categoría <span style={{ color: "#C9A96E" }}>*</span>
+            Tipo de prenda <span style={{ color: "#C9A96E" }}>*</span>
           </label>
           <button
             type="button"
@@ -370,12 +357,13 @@ export default function NewGarmentForm({ onClose, onSaved }: NewGarmentFormProps
                 boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
               }}
             >
-              {[...CATEGORIAS, "Otro"].map((cat) => (
+              {MARKETPLACE_TYPES.map(([, cat]) => (
                 <button
                   key={cat}
                   type="button"
                   onClick={() => {
                     setCategoria(cat);
+                    setTalle("");
                     setMostrarCategorias(false);
                   }}
                   className="w-full text-left px-4 py-2.5 text-sm transition hover:bg-[#F9F5F0]"
@@ -388,52 +376,40 @@ export default function NewGarmentForm({ onClose, onSaved }: NewGarmentFormProps
             </div>
           )}
 
-          {categoria === "Otro" && (
-            <input
-              type="text"
-              value={categoriaCustom}
-              onChange={(e) => setCategoriaCustom(e.target.value)}
-              placeholder="Escribí la categoría"
-              className="w-full outline-none mt-2 transition"
-              style={{
-                background: "#fff",
-                border: "1px solid #e8e4de",
-                borderRadius: "12px",
-                padding: "11px 14px",
-                fontSize: "13px",
-                color: "#1a1a1a",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = "#A8C5A0")}
-              onBlur={(e) => (e.target.style.borderColor = "#e8e4de")}
-            />
-          )}
         </div>
 
         <div className="mb-4">
-          <label
+          <p
             className="block uppercase text-[10px] tracking-[0.15em] font-medium mb-2"
             style={{ color: "#6b6b60" }}
           >
             Talle <span style={{ color: "#C9A96E" }}>*</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {TALLES.map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTalle(t)}
-                className="px-4 py-2 rounded-xl text-xs font-medium transition"
-                data-garment-interactive
-                style={{
-                  background: talle === t ? "#0B493D" : "#F7F1E7",
-                  color: talle === t ? "#fff" : "#333333",
-                  border: talle === t ? "1px solid #0B493D" : "1px solid #E5E1D9",
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          </p>
+          {tipoPrenda ? (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Opciones de talle">
+              {tallesDisponibles.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTalle(t)}
+                  aria-pressed={talle === t}
+                  className="px-4 py-2 rounded-xl text-xs font-medium transition"
+                  data-garment-interactive
+                  style={{
+                    background: talle === t ? "#0B493D" : "#F7F1E7",
+                    color: talle === t ? "#fff" : "#333333",
+                    border: talle === t ? "1px solid #0B493D" : "1px solid #E5E1D9",
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm" style={{ color: "#6b6b60" }}>
+              Primero elegí el tipo de prenda para ver los talles disponibles.
+            </p>
+          )}
         </div>
 
         <div className="mb-4">
