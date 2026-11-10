@@ -22,8 +22,23 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      - name: Validar conexión con OpenWeather API
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://openweathermap.org{{ secrets.OPENWEATHER_API_KEY }}")
+          if [ "$STATUS" -ne 200 ]; then
+            echo "Error: OpenWeather API respondió con estado $STATUS"
+            exit 1
+          fi
+          echo "Conexión exitosa con OpenWeather API (200 OK)"
+
       - name: Validar tipos de TypeScript y Compilar
         run: npm run build
+        env:
+          NEXT_PUBLIC_OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Ejecutar Tests
         run: npm run test
@@ -34,4 +49,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Desplegar a Vercel
-        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --name=eclosetinttento2 --yes
+        run: >
+          npx vercel deploy --prod 
+          --token=${{ secrets.VERCEL_TOKEN }} 
+          --scope=${{ secrets.VERCEL_ORG_ID }} 
+          --name=eclosetinttento2 
+          --yes
+          -e OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}
+          -e NEXT_PUBLIC_OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}
+          -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          -e DATABASE_URL=${{ secrets.DATABASE_URL }}
