@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { mockPrisma } from "../setup";
 import {
   generateToken,
   verifyToken,
@@ -61,27 +60,26 @@ describe("Auth - verifyToken", () => {
 });
 
 describe("Auth - extractToken", () => {
-  it("debe extraer token del header Authorization con Bearer", () => {
+  it("debe extraer token de la cookie de sesión", () => {
     const token = "valid-token-123";
     const request = new Request("http://localhost/api/test", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: `token=${token}` },
     });
 
     const result = extractToken(request);
     expect(result).toBe(token);
   });
 
-  it("debe retornar null si no hay header Authorization", () => {
-    const request = new Request("http://localhost/api/test");
-    const result = extractToken(request);
-    expect(result).toBeNull();
-  });
-
-  it("debe retornar null si el header no tiene formato Bearer", () => {
+  it("debe ignorar el header Bearer para evitar sesiones contradictorias", () => {
     const request = new Request("http://localhost/api/test", {
-      headers: { Authorization: "Basic some-token" },
+      headers: { Authorization: "Bearer token-anterior" },
     });
 
+    expect(extractToken(request)).toBeNull();
+  });
+
+  it("debe retornar null si no hay cookie de sesión", () => {
+    const request = new Request("http://localhost/api/test");
     const result = extractToken(request);
     expect(result).toBeNull();
   });

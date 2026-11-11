@@ -35,7 +35,7 @@ describe("GET /api/admin/productos", () => {
       .mockResolvedValueOnce([]);
     const { GET } = await import("@/app/api/admin/productos/route");
     const result = await GET(new NextRequest("http://localhost/api/admin/productos", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: `token=${token}` },
     }));
     const data = await result.json();
 
@@ -53,7 +53,7 @@ describe("GET /api/admin/productos", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const { GET } = await import("@/app/api/admin/productos/route");
     const result = await GET(new NextRequest("http://localhost/api/admin/productos", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: `token=${token}` },
     }));
     expect(result.status).toBe(500);
     error.mockRestore();

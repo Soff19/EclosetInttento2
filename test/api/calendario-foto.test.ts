@@ -17,7 +17,7 @@ describe("POST /api/calendario/foto", () => {
     const { POST } = await import("@/app/api/calendario/foto/route");
     return POST(new NextRequest("http://localhost/api/calendario/foto", {
       method: "POST",
-      headers: authenticated ? { Authorization: `Bearer ${token}` } : {},
+      headers: authenticated ? { Cookie: `token=${token}` } : {},
       body: JSON.stringify(body),
     }));
   }
@@ -46,7 +46,7 @@ describe("POST /api/calendario/foto", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect((await POST(new NextRequest("http://localhost/api/calendario/foto", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: `token=${token}` },
       body: "{",
     }))).status).toBe(500);
 

@@ -23,6 +23,21 @@ export default function Home() {
   const recoveryWasOpen = useRef(false);
 
   useEffect(() => {
+    localStorage.removeItem("token");
+    const timer = window.setTimeout(() => {
+      const oauthError = new URLSearchParams(window.location.search).get("error");
+      if (!oauthError) return;
+      const mensajes: Record<string, string> = {
+        google_not_configured: "El inicio de sesión con Google todavía no está configurado.",
+        google_state_invalid: "La solicitud de Google venció o no es válida. Intentá nuevamente.",
+        google_access_denied: "Cancelaste el inicio de sesión con Google.",
+        google_email_unverified: "Google no pudo verificar el correo de esta cuenta.",
+        google_account_conflict: "Esta cuenta de Google ya está vinculada a otra identidad.",
+        account_suspended: "La cuenta está suspendida.",
+        google_auth_failed: "No pudimos iniciar sesión con Google. Intentá nuevamente.",
+      };
+      setError(mensajes[oauthError] || "No se pudo completar el inicio de sesión.");
+    }, 0);
     let cancelled = false;
 
     async function checkSession() {
@@ -56,6 +71,7 @@ export default function Home() {
 
     void checkSession();
     return () => {
+      window.clearTimeout(timer);
       cancelled = true;
     };
   }, [router]);
@@ -76,7 +92,7 @@ export default function Home() {
 
       if (!res.ok) throw new Error(data.error || "Error al iniciar sesión");
 
-      if (data.token) localStorage.setItem("token", data.token);
+      localStorage.removeItem("token");
       router.push(data.redirectTo || "/home");
     } catch (err) {
       if (err instanceof Error) {
@@ -298,9 +314,9 @@ export default function Home() {
               <div className="h-px flex-1 bg-[#C7C2B8]" />
             </div>
 
-            <button
-              type="button"
-              onClick={() => window.location.href = "/api/auth/google"}
+            <a
+              href="/api/auth/google"
+              onClick={() => localStorage.removeItem("token")}
               className="auth-button-secondary w-full gap-3"
             >
               <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24">
@@ -310,7 +326,7 @@ export default function Home() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               Continuar con Google
-            </button>
+            </a>
           </form>
 
           <p className="mt-8 text-center text-sm text-[#55524C]">

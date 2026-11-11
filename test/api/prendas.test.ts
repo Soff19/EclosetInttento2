@@ -80,7 +80,7 @@ describe("API Prendas - POST /api/prendas", () => {
 
     const request = new Request("http://localhost/api/prendas", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: `token=${token}` },
       body: formData,
     });
 
@@ -101,7 +101,7 @@ describe("API Prendas - POST /api/prendas", () => {
 
     const request = new Request("http://localhost/api/prendas", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: `token=${token}` },
       body: formData,
     });
 
@@ -118,7 +118,7 @@ describe("API Prendas - POST /api/prendas", () => {
 
     const request = new Request("http://localhost/api/prendas", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: `token=${token}` },
       body: formData,
     });
 
@@ -138,7 +138,7 @@ describe("API Prendas - POST /api/prendas", () => {
 
     const request = new Request("http://localhost/api/prendas", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: `token=${token}` },
       body: formData,
     });
 

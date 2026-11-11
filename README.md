@@ -20,6 +20,17 @@ Cuando el vendedor acepta o deniega una solicitud, la decisión y las notificaci
 
 El vendedor solo reserva la publicación al aceptar una solicitud. El comprador puede confirmar que concretó la operación y, después, dejar una puntuación opcional del vendedor desde su perfil público. Las migraciones aditivas de puntuaciones y del índice para el contador de avisos no leídos se aplican con `npm run db:deploy`.
 
+## Autenticación de Google
+
+Configurá `JWT_SECRET`, `JWT_EXPIRES_IN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` y `NEXTAUTH_URL` en el entorno que corresponda. En localhost, `NEXTAUTH_URL` debe ser `http://localhost:3000`; en Vercel, configurá el origen HTTPS publicado desde el panel del proyecto. No se requieren archivos `.env.local` para compilar en producción.
+
+En las credenciales OAuth de Google registrá estas URL de redireccionamiento autorizadas:
+
+- `http://localhost:3000/api/auth/google/callback`
+- `https://<dominio-publicado>/api/auth/google/callback`
+
+Reemplazá el dominio de ejemplo por el dominio real de producción. La URL debe coincidir exactamente con `NEXTAUTH_URL` y con el callback usado por la aplicación. Los secretos de OAuth/JWT se leen solo del entorno del servidor. Aplicá la migración de identidad de Google con `npm run db:deploy` antes de desplegar esta versión.
+
 ## Getting Started
 
 First, run the development server:

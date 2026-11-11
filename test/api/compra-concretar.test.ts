@@ -15,7 +15,7 @@ const purchase = {
 function request() {
   return new NextRequest("http://localhost/api/compras/purchase-1/concretar", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Cookie: `token=${token}` },
   });
 }
 

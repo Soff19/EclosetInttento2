@@ -28,7 +28,7 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al registrarse");
-      if (data.token) localStorage.setItem("token", data.token);
+      localStorage.removeItem("token");
       router.push(data.redirectTo || "/onboarding");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error");

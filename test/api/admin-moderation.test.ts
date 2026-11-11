@@ -10,7 +10,7 @@ function authedRequest(url: string, body?: unknown) {
   return new NextRequest(url, {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${adminToken}`,
+      Cookie: `token=${adminToken}`,
       "Content-Type": "application/json",
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -116,7 +116,7 @@ describe("DELETE /api/admin/usuarios/[id]", () => {
     return DELETE(
       new NextRequest(`http://localhost/api/admin/usuarios/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `token=${adminToken}` },
       }),
       { params: Promise.resolve({ id }) },
     );

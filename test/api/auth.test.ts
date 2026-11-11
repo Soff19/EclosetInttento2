@@ -37,7 +37,8 @@ describe("API Auth - POST /api/auth/register", () => {
     expect(response.status).toBe(201);
     expect(data.success).toBe(true);
     expect(data.user).toBeDefined();
-    expect(data.token).toBeDefined();
+    expect(data.token).toBeUndefined();
+    expect(response.headers.get("set-cookie")).toContain("token=");
   });
 
   it("debe rechazar registro con email duplicado", async () => {
@@ -97,8 +98,9 @@ describe("API Auth - POST /api/auth/login", () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.token).toBeDefined();
+    expect(data.token).toBeUndefined();
     expect(data.user).toBeDefined();
+    expect(response.headers.get("set-cookie")).toContain("token=");
   });
 
   it("debe rechazar login con contraseña incorrecta", async () => {

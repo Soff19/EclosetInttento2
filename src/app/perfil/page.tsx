@@ -270,9 +270,14 @@ export default function PerfilPage() {
   }
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    localStorage.removeItem("token");
-    router.push("/");
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error("No se pudo cerrar la sesión. Intentá nuevamente.");
+      localStorage.removeItem("token");
+      router.replace("/");
+    } catch (logoutError) {
+      setError(logoutError instanceof Error ? logoutError.message : "No se pudo cerrar la sesión. Intentá nuevamente.");
+    }
   }
 
   if (!user) {

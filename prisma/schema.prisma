@@ -10,6 +10,7 @@ datasource db {
 model Usuario {
   id            String     @id @default(uuid())
   email         String     @unique
+  googleId      String?    @unique
   nombre        String?
   password      String
   rol           String     @default("USUARIA")

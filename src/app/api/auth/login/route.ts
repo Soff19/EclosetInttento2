@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateToken, loginUser } from "@/lib/auth";
+import { generateToken, loginUser, setAuthCookie } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -15,15 +15,8 @@ export async function POST(request: Request) {
       : user.perfilCompletado
         ? "/home"
         : "/onboarding";
-    const res = NextResponse.json({ success: true, user, token, redirectTo });
-
-    res.cookies.set("token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
+    const res = NextResponse.json({ success: true, user, redirectTo });
+    setAuthCookie(res, token);
     return res;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";

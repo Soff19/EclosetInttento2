@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateToken, registerUser } from "@/lib/auth";
+import { generateToken, registerUser, setAuthCookie } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -17,16 +17,10 @@ export async function POST(request: Request) {
     const user = await registerUser({ email, password, nombre: nombre || username });
     const token = generateToken(user);
     const res = NextResponse.json(
-      { success: true, user, token, redirectTo: "/onboarding" },
-      { status: 201 }
+      { success: true, user, redirectTo: "/onboarding" },
+      { status: 201 },
     );
-    res.cookies.set("token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
+    setAuthCookie(res, token);
     return res;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";

@@ -29,9 +29,11 @@ jobs:
         run: npm run test
 
       - name: Ejecutar Migraciones de Prisma
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Desplegar a Vercel
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --name=eclosetinttento2 --yes

@@ -20,7 +20,7 @@ const producto = {
 function request(url: string, method = "GET", body?: unknown, authenticated = true) {
   return new NextRequest(url, {
     method,
-    headers: authenticated ? { Authorization: `Bearer ${token}` } : {},
+    headers: authenticated ? { Cookie: `token=${token}` } : {},
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 }

@@ -62,7 +62,7 @@ export function generateExpiredToken(user: Partial<TestUser>): string {
 
 export function createAuthHeaders(token: string): Headers {
   const headers = new Headers();
-  headers.set("Authorization", `Bearer ${token}`);
+  headers.set("Cookie", `token=${token}`);
   headers.set("Content-Type", "application/json");
   return headers;
 }
