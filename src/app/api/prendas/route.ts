@@ -36,7 +36,14 @@ export async function GET(request: NextRequest) {
     const prendas = await prisma.prenda.findMany({
       where: { usuarioId: user.id },
       orderBy: { id: "desc" },
-    });
+      include: {
+        usuario: {
+          select: {
+            nombre: true,
+      },
+    },
+  },
+});
     return NextResponse.json({ prendas });
   } catch (error) {
     console.error(error);
