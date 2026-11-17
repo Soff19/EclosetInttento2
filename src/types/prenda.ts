@@ -8,4 +8,8 @@ export type Prenda = {
   etiquetas?: string | null; // JSON string
   descripcion?: string | null;
   usuarioId: string;
+
+  usuario?: {
+  nombre: string;
+};
 };

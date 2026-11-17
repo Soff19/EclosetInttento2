@@ -63,6 +63,11 @@ export default function GarmentCard({ prenda, selectable, selected, onToggle, on
         </div>
         {prenda.color && <p className={styles.garmentMeta}>Color: {prenda.color}</p>}
         {prenda.descripcion && <p className={`${styles.garmentMeta} line-clamp-2`}>{prenda.descripcion}</p>}
+        {prenda.usuario?.nombre && (
+          <p className={styles.garmentMeta}>
+            Publicado por: {prenda.usuario.nombre}
+          </p>
+          )}
         {tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {tags.slice(0, 4).map((tag) => (
