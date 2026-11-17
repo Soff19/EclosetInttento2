@@ -99,9 +99,20 @@ function DetalleUsuaria({
               {iniciales(usuaria.nombre)}
             </span>
             <div className="min-w-0">
-              <h2 id="detalle-titulo" className="text-xl font-light" style={{ color: "#2C3E2D" }}>
+              <div className="flex items-center gap-2">
+               <h2 id="detalle-titulo" className="text-xl font-light" style={{ color: "#2C3E2D" }}>
                 {usuaria.nombre}
-              </h2>
+               </h2>
+
+              {usuaria.tieneAlerta && (
+                <span
+                  title="La usuaria tiene un producto con promedio de reseñas entre 1 y 3 estrellas"
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 font-bold text-red-600"
+               >
+              !
+              </span>
+               )}
+</div>
               <p className="break-all text-sm" style={{ color: "#6b6b60" }}>{usuaria.email}</p>
             </div>
           </div>
