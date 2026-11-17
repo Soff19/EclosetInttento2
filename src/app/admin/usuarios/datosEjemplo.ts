@@ -1,6 +1,6 @@
 // Datos temporales para reemplazar por la API real.
 export type EstadoUsuaria = "ACTIVA" | "SUSPENDIDA";
-export type RolUsuaria = "ADMIN" | "USUARIA";
+export type RolUsuaria = "ADMIN" | "MODERADORA" | "USUARIA";
 
 export type UsuariaAdmin = {
   id: string;

@@ -2,6 +2,7 @@ import jwt, { type SignOptions } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import type { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { tienePermiso, type Permiso } from "@/lib/permisos";
 
 const JWT_SECRET = process.env.JWT_SECRET || "mi_secreto_temporal";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
@@ -143,3 +144,10 @@ export async function updateUserProfile(
     select: { id: true, email: true, nombre: true, fotoPerfil: true, fechaCreacion: true },
   });
 }
+
+export async function requirePermiso(request: NextRequest | Request, permiso: Permiso) {
+  const user = await getAuthenticatedUser(request);
+  return user && tienePermiso(user.rol, permiso) ? user : null;
+}
+
+

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getAdminUser } from "@/lib/auth";
+import { requirePermiso } from "@/lib/auth";
 
-type UserChanges = { rol?: "ADMIN" | "USUARIA"; estado?: "ACTIVA" | "SUSPENDIDA" };
+type UserChanges = { rol?: "ADMIN" | "MODERADORA" | "USUARIA"; estado?: "ACTIVA" | "SUSPENDIDA" };
 
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const admin = await getAdminUser(request);
+  const admin = await requirePermiso(request, "usuarios:gestionar") ;
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const { id } = await context.params;
@@ -23,7 +23,7 @@ export async function PATCH(
     const rol = payload.rol;
     const estado = payload.estado;
     if (
-      (rol !== undefined && rol !== "ADMIN" && rol !== "USUARIA") ||
+      (rol !== undefined && rol !== "ADMIN" && rol !== "MODERADORA" && rol !== "USUARIA") ||
       (estado !== undefined && estado !== "ACTIVA" && estado !== "SUSPENDIDA") ||
       (rol === undefined && estado === undefined)
     ) {
@@ -96,7 +96,7 @@ export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const admin = await getAdminUser(request);
+  const admin = await requirePermiso(request, "usuarios:gestionar");
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const { id } = await context.params;

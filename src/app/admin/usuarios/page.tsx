@@ -29,7 +29,14 @@ const estiloEstado: Record<EstadoUsuaria, { background: string; color: string }>
 
 const estiloRol: Record<RolUsuaria, { background: string; color: string }> = {
   ADMIN: { background: "rgba(201,169,110,0.22)", color: "#70551f" },
+  MODERADORA: { background: "rgba(168,197,160,0.3)", color: "#2C3E2D" },
   USUARIA: { background: "rgba(107,107,96,0.12)", color: "#55564d" },
+};
+
+const etiquetaRol: Record<RolUsuaria, string> = {
+  ADMIN: "Admin",
+  MODERADORA: "Moderadora",
+  USUARIA: "Usuaria",
 };
 
 function formatearFecha(fecha: string) {
@@ -120,7 +127,7 @@ function DetalleUsuaria({
           <div>
             <dt className="text-xs" style={{ color: "#77776d" }}>Rol</dt>
             <dd className="mt-1 text-sm font-medium" style={{ color: "#2C3E2D" }}>
-              {usuaria.rol === "ADMIN" ? "Administradora" : "Usuaria"}
+              {etiquetaRol[usuaria.rol]}
             </dd>
           </div>
           <div>
@@ -229,11 +236,10 @@ export default function AdminUsuariosPage() {
     });
   }
 
-  async function alternarRol(usuaria: UsuariaAdmin) {
-    if (!confirmarCambio(usuaria, "rol")) return;
-    await actualizarUsuaria(usuaria.id, {
-      rol: usuaria.rol === "ADMIN" ? "USUARIA" : "ADMIN",
-    });
+  async function cambiarRol(usuaria: UsuariaAdmin, nuevoRol: RolUsuaria) {
+  if (nuevoRol === usuaria.rol) return;
+  if (!window.confirm(`¿Querés cambiar el rol de ${usuaria.nombre} a ${etiquetaRol[nuevoRol]}?`)) return;
+  await actualizarUsuaria(usuaria.id, { rol: nuevoRol });
   }
 
   async function eliminarUsuaria() {
@@ -348,6 +354,7 @@ export default function AdminUsuariosPage() {
               <option value="TODOS">Todos los roles</option>
               <option value="ADMIN">Administradoras</option>
               <option value="USUARIA">Usuarias</option>
+              <option value="MODERADORA">Moderadoras</option>
             </select>
           </div>
           <p className="text-xs sm:col-span-2 lg:col-span-3" style={{ color: "#77776d" }} aria-live="polite">
@@ -401,7 +408,7 @@ export default function AdminUsuariosPage() {
                       </td>
                       <td className="px-4 py-4">
                         <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={estiloRol[usuaria.rol]}>
-                          {usuaria.rol === "ADMIN" ? "Admin" : "Usuaria"}
+                          {etiquetaRol[usuaria.rol]}
                         </span>
                       </td>
                       <td className="px-4 py-4">
@@ -417,7 +424,7 @@ export default function AdminUsuariosPage() {
                           usuaria={usuaria}
                           onDetalle={() => setDetalle(usuaria)}
                           onEstado={() => alternarEstado(usuaria)}
-                          onRol={() => alternarRol(usuaria)}
+                          onRol={(rol) => cambiarRol(usuaria, rol)} 
                           onEliminar={() => {
                             setErrorEliminacion("");
                             setUsuariaAEliminar(usuaria);
@@ -444,7 +451,7 @@ export default function AdminUsuariosPage() {
                       <p className="break-all text-xs" style={{ color: "#6b6b60" }}>{usuaria.email}</p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={estiloRol[usuaria.rol]}>
-                          {usuaria.rol === "ADMIN" ? "Admin" : "Usuaria"}
+                          {etiquetaRol[usuaria.rol]} 
                         </span>
                         <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={estiloEstado[usuaria.estado]}>
                           {usuaria.estado === "ACTIVA" ? "Activa" : "Suspendida"}
@@ -459,7 +466,7 @@ export default function AdminUsuariosPage() {
                     usuaria={usuaria}
                     onDetalle={() => setDetalle(usuaria)}
                     onEstado={() => alternarEstado(usuaria)}
-                    onRol={() => alternarRol(usuaria)}
+                    onRol={(rol) => cambiarRol(usuaria, rol)} 
                     onEliminar={() => {
                       setErrorEliminacion("");
                       setUsuariaAEliminar(usuaria);
@@ -543,7 +550,7 @@ function AccionesUsuaria({
   usuaria: UsuariaAdmin;
   onDetalle: () => void;
   onEstado: () => void;
-  onRol: () => void;
+  onRol: (rol: RolUsuaria) => void; 
   onEliminar: () => void;
   deshabilitada: boolean;
   compactas?: boolean;
@@ -575,17 +582,18 @@ function AccionesUsuaria({
         {usuaria.estado === "ACTIVA" ? <X size={15} aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}
         {usuaria.estado === "ACTIVA" ? "Suspender" : "Reactivar"}
       </button>
-      <button
-        type="button"
+      <select
         disabled={deshabilitada}
-        onClick={onRol}
-        aria-label={`Cambiar rol de ${usuaria.nombre} a ${usuaria.rol === "ADMIN" ? "usuaria" : "administradora"}`}
+        value={usuaria.rol}
+        onChange={(event) => onRol(event.target.value as RolUsuaria)}
+        aria-label={`Cambiar rol de ${usuaria.nombre}`}
         className={botonClase}
-        style={{ borderColor: "#e8e4de", color: "#2C3E2D" }}
-      >
-        <Shield size={15} aria-hidden="true" />
-        {usuaria.rol === "ADMIN" ? "Hacer usuaria" : "Hacer admin"}
-      </button>
+      style={{ borderColor: "#e8e4de", color: "#2C3E2D" }}
+        >
+        <option value="USUARIA">Usuaria</option>
+        <option value="MODERADORA">Moderadora</option>
+        <option value="ADMIN">Admin</option>
+      </select>
       <button
         type="button"
         disabled={deshabilitada}
