@@ -10,6 +10,7 @@ export type UsuariaAdmin = {
   estado: EstadoUsuaria;
   fechaCreacion: string;
   perfilCompletado: boolean;
+  tieneAlerta?: boolean;
 };
 
 export const usuariasEjemplo: UsuariaAdmin[] = [
