@@ -148,12 +148,19 @@ export default function ClimaActual({ onWeatherChange }: Props) {
         Clima actual
       </h2>
 
-      {cargando ? (
+      {/* {cargando ? (
         <div className="mt-4 animate-pulse space-y-3" aria-label="Cargando el clima">
           <div className="h-8 w-2/3 rounded-lg bg-[#C6EFD6]" />
           <div className="h-16 rounded-xl bg-[#C6EFD6]/70" />
           <div className="h-4 w-1/2 rounded bg-[#C6EFD6]/70" />
-        </div>
+        </div> */}
+
+      {cargando ? (
+          <div className="mt-4 flex items-center justify-center gap-2 py-6">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#C6EFD6] border-t-[#2D7655]" />
+            <div className="h-4 w-1/2 rounded bg-[#C6EFD6]/70" />
+            <span className="text-sm text-gray-600">Cargando clima...</span>
+          </div>
       ) : error ? (
         <div className="mt-4" role="alert">
           <p className="text-sm leading-5" style={{ color: "#8b3838" }}>{error}</p>
